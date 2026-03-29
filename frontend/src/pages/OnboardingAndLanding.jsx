@@ -1275,7 +1275,12 @@ export default function OnboardingAndLanding({
         <div className="absolute bottom-[-20%] left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,var(--secondary-glow)_0%,transparent_60%)] pointer-events-none z-0 transition-colors duration-500"></div>
 
         {/* View 1: Onboarding */}
-        <div className="absolute inset-0 w-full h-full z-10">
+        <div
+          className={`absolute inset-0 w-full h-full z-10 ${
+            isOnboardingComplete ? "pointer-events-none" : ""
+          }`}
+          aria-hidden={isOnboardingComplete}
+        >
           <Onboarding
             onComplete={() => {
               setIsOnboardingComplete(true);
@@ -1300,8 +1305,9 @@ export default function OnboardingAndLanding({
         {/* View 2: Choice Page */}
         <div
           className={`absolute inset-0 w-full h-full bg-[var(--background)] transition-transform duration-[1000ms] ease-[cubic-bezier(0.76,0,0.24,1)] z-40 transform-gpu will-change-transform transition-colors
-          ${isOnboardingComplete ? "translate-y-0" : "translate-y-full"}`}
+          ${isOnboardingComplete ? "translate-y-0" : "translate-y-full pointer-events-none invisible"}`}
           style={{ transitionDelay: isOnboardingComplete ? "300ms" : "0ms" }}
+          aria-hidden={!isOnboardingComplete}
         >
           {/* Re-apply the ambient glows inside the choice page layer for correct stacking */}
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,var(--primary-glow)_0%,transparent_60%)] pointer-events-none z-0 transition-colors duration-500"></div>
