@@ -31,6 +31,7 @@ import {
   Trash2,
 } from "lucide-react";
 import OverlaySidebarNav from "../components/OverlaySidebarNav";
+import usePlacesAutocomplete from "../hooks/usePlacesAutocomplete";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -1118,9 +1119,7 @@ export default function Profile({
     return () => document.removeEventListener("mousedown", fn);
   }, []);
 
-  const filteredLocs = ALL_LOCATIONS.filter((l) =>
-    l.toLowerCase().includes(locQuery.toLowerCase()),
-  );
+  const filteredLocs = usePlacesAutocomplete(locQuery, ALL_LOCATIONS);
 
   const boxStyles = (n) => ({
     backgroundColor: `var(--color-box${n}-bg)`,

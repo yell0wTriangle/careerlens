@@ -32,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import OverlaySidebarNav from "../components/OverlaySidebarNav";
+import usePlacesAutocomplete from "../hooks/usePlacesAutocomplete";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -275,11 +276,10 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
     "Anywhere",
   ];
 
-  const locationSuggestions = allLocations.filter((loc) =>
-    loc.toLowerCase().includes(locationQuery.toLowerCase()),
-  );
-  const destinationSuggestions = allLocations.filter((loc) =>
-    loc.toLowerCase().includes(destinationQuery.toLowerCase()),
+  const locationSuggestions = usePlacesAutocomplete(locationQuery, allLocations);
+  const destinationSuggestions = usePlacesAutocomplete(
+    destinationQuery,
+    allLocations,
   );
 
   const handleChange = (field, value) =>
