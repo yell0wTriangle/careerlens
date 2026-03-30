@@ -26,7 +26,12 @@ import {
   Moon,
   ChevronRight,
   ChevronLeft,
+  Award,
+  Plus,
+  Trash2,
+  X,
 } from "lucide-react";
+import OverlaySidebarNav from "../components/OverlaySidebarNav";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -103,11 +108,118 @@ const darkTheme = {
   "--color-box4-deco2": "rgba(255, 255, 255, 0.1)",
 };
 
+// --- Schema Definitions for Complex Array Items ---
+const COMPLEX_FIELDS = {
+  "complex-projects": {
+    title: "Project",
+    fields: [
+      { key: "name", placeholder: "Project Name", type: "text", width: "full" },
+      {
+        key: "url",
+        placeholder: "Project URL (optional)",
+        type: "url",
+        width: "full",
+      },
+      {
+        key: "startDate",
+        placeholder: "Start Date (e.g. Jan 2023)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "endDate",
+        placeholder: "End Date (e.g. Present)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "description",
+        placeholder: "Brief Description",
+        type: "textarea",
+        width: "full",
+      },
+      {
+        key: "highlights",
+        placeholder: "Add a highlight & press Enter...",
+        type: "tags",
+        width: "full",
+      },
+    ],
+  },
+  "complex-work": {
+    title: "Experience",
+    fields: [
+      { key: "name", placeholder: "Company Name", type: "text", width: "half" },
+      {
+        key: "position",
+        placeholder: "Job Title / Position",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "url",
+        placeholder: "Company URL (optional)",
+        type: "url",
+        width: "full",
+      },
+      {
+        key: "startDate",
+        placeholder: "Start Date (e.g. Jan 2023)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "endDate",
+        placeholder: "End Date (e.g. Present)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "summary",
+        placeholder: "Role Summary",
+        type: "textarea",
+        width: "full",
+      },
+      {
+        key: "highlights",
+        placeholder: "Add an achievement & press Enter...",
+        type: "tags",
+        width: "full",
+      },
+    ],
+  },
+  "complex-certs": {
+    title: "Certificate",
+    fields: [
+      {
+        key: "name",
+        placeholder: "Certificate / Award Name",
+        type: "text",
+        width: "full",
+      },
+      {
+        key: "issuer",
+        placeholder: "Issuing Organization",
+        type: "text",
+        width: "half",
+      },
+      { key: "date", placeholder: "Date Issued", type: "text", width: "half" },
+      {
+        key: "url",
+        placeholder: "Credential URL (optional)",
+        type: "url",
+        width: "full",
+      },
+    ],
+  },
+};
+
 // ==========================================
 // 1. ONBOARDING COMPONENT
 // ==========================================
 const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
   const [step, setStep] = useState(0);
+  const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
     location: "",
     relocate: "No",
@@ -128,6 +240,9 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
     techDomain: "",
     improvementArea: "",
     companySize: "Any",
+    work: [],
+    projects: [],
+    certificates: [],
   });
 
   const [locationQuery, setLocationQuery] = useState("");
@@ -279,6 +394,30 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
       required: true,
     },
     {
+      id: "work",
+      title: "Work Experience",
+      icon: <Briefcase />,
+      type: "complex",
+      subtype: "complex-work",
+      required: false,
+    },
+    {
+      id: "projects",
+      title: "Featured Projects",
+      icon: <Code />,
+      type: "complex",
+      subtype: "complex-projects",
+      required: false,
+    },
+    {
+      id: "certificates",
+      title: "Certificates & Awards",
+      icon: <Award />,
+      type: "complex",
+      subtype: "complex-certs",
+      required: false,
+    },
+    {
       id: "languages",
       title: "Languages Spoken",
       icon: <MessageSquare />,
@@ -421,6 +560,7 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
   const currentValue = formData[currentConfig.id];
 
   const isStepValid = () => {
+    if (editingItem) return false;
     if (!currentConfig.required) return true;
     if (Array.isArray(currentValue)) return currentValue.length > 0;
     if (typeof currentValue === "number") return true;
@@ -438,6 +578,7 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
       setStep(step + 1);
       setShowLocationSuggestions(false);
       setShowDestinationSuggestions(false);
+      setEditingItem(null);
     }
   };
 
@@ -446,6 +587,7 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
       setStep(step - 1);
       setShowLocationSuggestions(false);
       setShowDestinationSuggestions(false);
+      setEditingItem(null);
     }
   };
 
@@ -454,6 +596,206 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
 
   const renderInput = () => {
     switch (currentConfig.type) {
+      case "complex": {
+        const schema = COMPLEX_FIELDS[currentConfig.subtype];
+        const isEditing = editingItem !== null;
+
+        const handleAddHighlight = (e, key) => {
+          if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            const val = e.target.value.trim().replace(/,$/, "");
+            if (val) {
+              setEditingItem((prev) => ({
+                ...prev,
+                [key]: [...(prev[key] || []), val],
+              }));
+              e.target.value = "";
+            }
+          }
+        };
+
+        return (
+          <div className="w-full max-w-3xl flex flex-col gap-4">
+            {!isEditing ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentValue.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="relative p-5 bg-[var(--input-glass)] border border-[var(--border)] rounded-[var(--input-radius)] flex flex-col gap-2 text-left group shadow-sm hover:shadow-md transition-all"
+                  >
+                    <button
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          [currentConfig.id]: prev[currentConfig.id].filter(
+                            (_, i) => i !== idx,
+                          ),
+                        }));
+                      }}
+                      className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    <h4 className="font-bold text-[var(--foreground)] text-lg pr-6">
+                      {item.name}
+                    </h4>
+                    {(item.position || item.issuer) && (
+                      <p className="font-semibold text-[var(--primary)] text-sm">
+                        {item.position || item.issuer}
+                      </p>
+                    )}
+                    {(item.startDate || item.date) && (
+                      <p className="text-xs text-[var(--foreground)]/60 font-['Fira_Code',monospace] uppercase tracking-wider">
+                        {item.startDate || item.date}{" "}
+                        {item.endDate ? `- ${item.endDate}` : ""}
+                      </p>
+                    )}
+                    {(item.description || item.summary) && (
+                      <p className="text-sm text-[var(--foreground)]/80 line-clamp-2 mt-1">
+                        {item.description || item.summary}
+                      </p>
+                    )}
+                  </div>
+                ))}
+
+                <button
+                  onClick={() => {
+                    const newItem = {};
+                    schema.fields.forEach(
+                      (f) => (newItem[f.key] = f.type === "tags" ? [] : ""),
+                    );
+                    setEditingItem(newItem);
+                  }}
+                  className="p-5 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[var(--border)] rounded-[var(--input-radius)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 text-[var(--foreground)]/60 hover:text-[var(--primary)] transition-all min-h-[160px]"
+                >
+                  <div className="w-12 h-12 rounded-full bg-[var(--input-glass)] flex items-center justify-center shadow-sm">
+                    <Plus size={24} />
+                  </div>
+                  <span className="font-bold">Add {schema.title}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-6 md:p-8 bg-[var(--card-solid)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col gap-5 text-left animate-fade-in-up shadow-xl">
+                <h3 className="text-xl font-extrabold mb-2">
+                  New {schema.title}
+                </h3>
+                <div className="flex flex-wrap gap-4">
+                  {schema.fields.map((field) => {
+                    const wClass =
+                      field.width === "half"
+                        ? "w-full md:w-[calc(50%-0.5rem)]"
+                        : "w-full";
+
+                    if (field.type === "textarea") {
+                      return (
+                        <textarea
+                          key={field.key}
+                          placeholder={field.placeholder}
+                          value={editingItem[field.key]}
+                          onChange={(e) =>
+                            setEditingItem({
+                              ...editingItem,
+                              [field.key]: e.target.value,
+                            })
+                          }
+                          rows={3}
+                          className={`${inputBaseClass} ${wClass} resize-none`}
+                        />
+                      );
+                    }
+                    if (field.type === "tags") {
+                      return (
+                        <div
+                          key={field.key}
+                          className={`flex flex-col gap-3 ${wClass}`}
+                        >
+                          <input
+                            type="text"
+                            placeholder={field.placeholder}
+                            onKeyDown={(e) => handleAddHighlight(e, field.key)}
+                            className={inputBaseClass}
+                          />
+                          {editingItem[field.key] &&
+                            editingItem[field.key].length > 0 && (
+                              <ul className="flex flex-col gap-2 mt-2">
+                                {editingItem[field.key].map((tag, i) => (
+                                  <li
+                                    key={i}
+                                    className="flex items-start gap-2 text-sm text-[var(--foreground)]/80 group/tag bg-[var(--input-glass)] p-3 rounded-xl border border-[var(--border)]"
+                                  >
+                                    <Check
+                                      size={16}
+                                      className="text-[var(--primary)] shrink-0 mt-0.5"
+                                    />
+                                    <span className="flex-1">{tag}</span>
+                                    <button
+                                      onClick={() =>
+                                        setEditingItem({
+                                          ...editingItem,
+                                          [field.key]: editingItem[
+                                            field.key
+                                          ].filter((_, tIdx) => tIdx !== i),
+                                        })
+                                      }
+                                      className="text-[var(--foreground)]/40 hover:text-red-500 transition-colors"
+                                    >
+                                      <X size={16} />
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <input
+                        key={field.key}
+                        type={field.type}
+                        placeholder={field.placeholder}
+                        value={editingItem[field.key]}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            [field.key]: e.target.value,
+                          })
+                        }
+                        className={`${inputBaseClass} ${wClass}`}
+                      />
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-3 mt-4 justify-end border-t border-[var(--border)] pt-6">
+                  <button
+                    onClick={() => setEditingItem(null)}
+                    className="px-6 py-3 rounded-full font-bold text-sm bg-[var(--input-glass)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        [currentConfig.id]: [
+                          ...prev[currentConfig.id],
+                          editingItem,
+                        ],
+                      }));
+                      setEditingItem(null);
+                    }}
+                    disabled={!editingItem.name}
+                    className="px-8 py-3 rounded-full font-bold text-sm bg-[var(--primary)] text-[var(--primary-foreground)] disabled:opacity-50 shadow-lg shadow-[var(--primary)]/20 hover:scale-105 transition-all"
+                  >
+                    Save {schema.title}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
       case "location":
         return (
           <div className="relative w-full max-w-xl">
@@ -817,26 +1159,28 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col px-10 py-6 overflow-y-auto items-center justify-center relative">
-          <div className="text-center mb-10 w-full animate-fade-in-up">
-            <div className="mx-auto w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-              {React.cloneElement(currentConfig.icon, {
-                size: 32,
-                strokeWidth: 2,
-              })}
+        <div className="flex-1 flex flex-col px-10 overflow-y-auto relative">
+          <div className="w-full my-auto flex flex-col items-center py-10">
+            <div className="text-center mb-10 w-full animate-fade-in-up">
+              <div className="mx-auto w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+                {React.cloneElement(currentConfig.icon, {
+                  size: 32,
+                  strokeWidth: 2,
+                })}
+              </div>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--foreground)]">
+                {currentConfig.title}
+              </h2>
+              {!currentConfig.required && (
+                <p className="mt-4 text-[var(--foreground)]/50 font-medium">
+                  You can fill this out later.
+                </p>
+              )}
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--foreground)]">
-              {currentConfig.title}
-            </h2>
-            {!currentConfig.required && (
-              <p className="mt-4 text-[var(--foreground)]/50 font-medium">
-                You can fill this out later.
-              </p>
-            )}
-          </div>
 
-          <div className="w-full flex justify-center animate-fade-in-up delay-75">
-            {renderInput()}
+            <div className="w-full flex justify-center animate-fade-in-up delay-75">
+              {renderInput()}
+            </div>
           </div>
         </div>
 
@@ -895,137 +1239,23 @@ const ChoicePage = ({
 
   return (
     <div className="w-full h-full flex overflow-hidden relative">
-      {/* Backdrop for blurring the main content */}
-      <div
-        className={`fixed inset-0 z-[8000] bg-[var(--background)]/30 backdrop-blur-md transition-all duration-500 ${
-          isNavOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsNavOpen(false)}
+      <OverlaySidebarNav
+        isOpen={isNavOpen}
+        setIsOpen={setIsNavOpen}
+        activeItem={null}
+        isDarkMode={isDarkMode}
+        onToggleTheme={toggleTheme}
+        onOpenLanding={onOpenLanding}
+        onOpenDashboard={onOpenDashboard}
+        onOpenResumeAnalysis={onOpenResumeAnalysis}
+        onOpenMockInterview={onOpenMockInterview}
+        onOpenProfile={onOpenProfile}
+        backdropZClass="z-[8000]"
+        navZClass="z-[9000]"
+        inactiveButtonClass="bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] shadow-sm"
+        themeButtonClass="bg-[var(--input-glass)] border border-transparent hover:border-[var(--foreground)]/20 hover:bg-[var(--background)] text-[var(--foreground)] shadow-sm"
+        triggerTextClass="text-[var(--foreground)]/60 hover:text-[var(--primary)]"
       />
-
-      {/* Overlay Sidebar Navbar */}
-      <div
-        className={`fixed left-0 top-0 bottom-0 z-[9000] flex transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-          isNavOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <nav className="relative z-10 w-20 md:w-24 h-full flex flex-col items-center justify-between py-8 md:py-10 bg-[var(--card-solid)] border-r border-[var(--border)] shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-          {/* Top Logo */}
-          <div className="flex flex-col items-center gap-6">
-            <button
-              type="button"
-              onClick={onOpenLanding}
-              className="w-12 h-12 md:w-14 md:h-14 bg-[var(--tertiary)] text-white flex items-center justify-center font-bold"
-              style={{ borderRadius: "16px 16px 4px 16px" }}
-            >
-              <Sparkles size={24} />
-            </button>
-            <span className="text-sm md:text-base font-black tracking-[0.5em] text-[var(--foreground)] uppercase [writing-mode:vertical-rl] rotate-180 opacity-40 font-['Fira_Code',monospace]">
-              CAREERLENS
-            </span>
-          </div>
-
-          {/* Nav Actions */}
-          <div className="flex flex-col gap-4 items-center w-full px-4">
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenDashboard) onOpenDashboard();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Dashboard"
-            >
-              <LayoutDashboard
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenResumeAnalysis) onOpenResumeAnalysis();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Resume Upload"
-            >
-              <Upload
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenMockInterview) onOpenMockInterview();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Mock AI Interview"
-            >
-              <Bot
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenProfile) onOpenProfile();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)]/30 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Profile"
-            >
-              <User
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-
-            <div className="w-8 h-[2px] bg-[var(--border)] rounded-full mx-auto my-3 opacity-50"></div>
-
-            <button
-              onClick={toggleTheme}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--foreground)]/20 hover:bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Toggle Theme"
-            >
-              {isDarkMode ? (
-                <Sun
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:rotate-45 transition-transform"
-                />
-              ) : (
-                <Moon
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:-rotate-12 transition-transform"
-                />
-              )}
-            </button>
-          </div>
-        </nav>
-
-        {/* The Arrow/Bump Trigger - Always Visible */}
-        <button
-          onClick={() => setIsNavOpen(!isNavOpen)}
-          className="absolute -right-6 md:-right-7 top-1/2 -translate-y-1/2 w-6 md:w-7 h-24 bg-[var(--card-solid)] border-y border-r border-[var(--border)] border-l-0 flex items-center justify-end pr-1 text-[var(--foreground)]/60 hover:text-[var(--primary)] transition-colors shadow-[4px_0_12px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none z-0"
-          style={{ borderRadius: "0 100% 100% 0 / 0 50% 50% 0" }}
-        >
-          <ChevronRight
-            size={16}
-            className={`transition-transform duration-500 shrink-0 ${isNavOpen ? "rotate-180" : "rotate-0"}`}
-          />
-        </button>
-      </div>
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 h-full overflow-y-auto overflow-x-hidden p-4 md:p-6">

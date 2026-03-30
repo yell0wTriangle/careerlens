@@ -16,7 +16,11 @@ import {
   ChevronRight,
   User,
   Bot,
+  FolderKanban,
+  Clock,
+  Check,
 } from "lucide-react";
+import OverlaySidebarNav from "../components/OverlaySidebarNav";
 
 // --- Theme Configurations (Synced with Landing) ---
 const lightTheme = {
@@ -42,6 +46,30 @@ const lightTheme = {
   "--primary-glow": "rgba(249, 87, 56, 0.15)",
   "--secondary-glow": "rgba(238, 66, 102, 0.15)",
   "--tertiary-glow": "rgba(66, 74, 231, 0.12)",
+  "--color-box1-bg": "#FFFFFF",
+  "--color-box1-border": "#E4DDD0",
+  "--color-box1-text": "#1C1917",
+  "--color-box1-muted": "rgba(28, 25, 23, 0.5)",
+  "--color-box1-icon-bg": "rgba(66, 74, 231, 0.1)",
+  "--color-box1-icon": "#424AE7",
+  "--color-box2-bg": "#EE4266",
+  "--color-box2-border": "#EE4266",
+  "--color-box2-text": "#FFFFFF",
+  "--color-box2-muted": "rgba(255, 255, 255, 0.8)",
+  "--color-box2-icon-bg": "#FFFFFF",
+  "--color-box2-icon": "#EE4266",
+  "--color-box3-bg": "#424AE7",
+  "--color-box3-border": "#424AE7",
+  "--color-box3-text": "#FFFFFF",
+  "--color-box3-muted": "rgba(255, 255, 255, 0.8)",
+  "--color-box3-icon-bg": "#FFFFFF",
+  "--color-box3-icon": "#424AE7",
+  "--color-box4-bg": "#F95738",
+  "--color-box4-border": "#F95738",
+  "--color-box4-text": "#FFFFFF",
+  "--color-box4-muted": "rgba(255, 255, 255, 0.8)",
+  "--color-box4-icon-bg": "#FFFFFF",
+  "--color-box4-icon": "#F95738",
 };
 
 const darkTheme = {
@@ -67,7 +95,62 @@ const darkTheme = {
   "--primary-glow": "rgba(255, 107, 74, 0.12)",
   "--secondary-glow": "rgba(255, 82, 119, 0.12)",
   "--tertiary-glow": "rgba(107, 114, 255, 0.12)",
+  "--color-box1-bg": "#18181B",
+  "--color-box1-border": "#3F3F46",
+  "--color-box1-text": "#F6F4EE",
+  "--color-box1-muted": "rgba(246, 244, 238, 0.5)",
+  "--color-box1-icon-bg": "rgba(107, 114, 255, 0.15)",
+  "--color-box1-icon": "#6B72FF",
+  "--color-box2-bg": "#18181B",
+  "--color-box2-border": "#3F3F46",
+  "--color-box2-text": "#F6F4EE",
+  "--color-box2-muted": "rgba(246, 244, 238, 0.5)",
+  "--color-box2-icon-bg": "rgba(255, 82, 119, 0.15)",
+  "--color-box2-icon": "#FF5277",
+  "--color-box3-bg": "#18181B",
+  "--color-box3-border": "#3F3F46",
+  "--color-box3-text": "#F6F4EE",
+  "--color-box3-muted": "rgba(246, 244, 238, 0.5)",
+  "--color-box3-icon-bg": "rgba(107, 114, 255, 0.15)",
+  "--color-box3-icon": "#6B72FF",
+  "--color-box4-bg": "#18181B",
+  "--color-box4-border": "#3F3F46",
+  "--color-box4-text": "#F6F4EE",
+  "--color-box4-muted": "rgba(246, 244, 238, 0.5)",
+  "--color-box4-icon-bg": "rgba(255, 209, 102, 0.15)",
+  "--color-box4-icon": "#FF6B4A",
 };
+
+const mockVaultResumes = [
+  {
+    id: "r1",
+    name: "Alex_Dev_Resume_2026.pdf",
+    date: "Oct 24, 2026",
+    size: "1.2 MB",
+    boxId: 1,
+  },
+  {
+    id: "r2",
+    name: "Frontend_Specific_v2.pdf",
+    date: "Oct 15, 2026",
+    size: "0.8 MB",
+    boxId: 2,
+  },
+  {
+    id: "r3",
+    name: "Backend_Architecture.pdf",
+    date: "Sep 28, 2026",
+    size: "1.5 MB",
+    boxId: 3,
+  },
+  {
+    id: "r4",
+    name: "Fullstack_General_OLD.pdf",
+    date: "Aug 10, 2026",
+    size: "2.1 MB",
+    boxId: 4,
+  },
+];
 
 export default function ResumeUpload({
   onLaunchAnalysis,
@@ -83,6 +166,8 @@ export default function ResumeUpload({
 
   // Form State
   const [file, setFile] = useState(null);
+  const [vaultFile, setVaultFile] = useState(null);
+  const [storeConsent, setStoreConsent] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [targetMode, setTargetMode] = useState("title"); // "title" | "description"
   const [jobTitle, setJobTitle] = useState("");
@@ -158,17 +243,19 @@ export default function ResumeUpload({
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     ) {
       setFile(selectedFile);
+      setVaultFile(null);
     }
   };
 
   const removeFile = () => {
     setFile(null);
+    setVaultFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file && !vaultFile) return;
     setIsAnalyzing(true);
     setTimeout(() => {
       setIsAnalyzing(false);
@@ -193,9 +280,9 @@ export default function ResumeUpload({
           margin: 0;
         }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -223,137 +310,22 @@ export default function ResumeUpload({
         style={currentTheme}
         className="relative w-full min-h-screen flex items-center justify-center overflow-x-hidden bg-[var(--background)] font-['Plus_Jakarta_Sans',sans-serif] text-[var(--foreground)] selection:bg-[var(--primary)] selection:text-[var(--primary-foreground)] transition-colors duration-500 p-4 sm:p-8"
       >
-        {/* Backdrop for blurring the main content */}
-        <div
-          className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-md transition-all duration-500 ${
-            isNavOpen
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsNavOpen(false)}
+        <OverlaySidebarNav
+          isOpen={isNavOpen}
+          setIsOpen={setIsNavOpen}
+          activeItem="resume"
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
+          onOpenLanding={onReturnToLanding}
+          onOpenDashboard={onOpenDashboard}
+          onOpenResumeAnalysis={undefined}
+          onOpenMockInterview={onOpenMockInterview}
+          onOpenProfile={onOpenProfile}
+          backdropZClass="z-40"
+          navZClass="z-50"
+          inactiveButtonClass="bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] shadow-sm"
+          themeButtonClass="bg-[var(--input-glass)] border border-transparent hover:border-[var(--border)] hover:bg-[var(--background)] text-[var(--foreground)] shadow-sm"
         />
-
-        {/* Overlay Sidebar Navbar */}
-        <div
-          className={`fixed left-0 top-0 bottom-0 z-50 flex transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-            isNavOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <nav className="relative z-10 w-20 md:w-24 h-full flex flex-col items-center justify-between py-8 md:py-10 bg-[var(--card-solid)] border-r border-[var(--border)] shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-            {/* Top Logo */}
-            <div className="flex flex-col items-center gap-6">
-              <button
-                type="button"
-                onClick={onReturnToLanding}
-                className="w-12 h-12 md:w-14 md:h-14 bg-[var(--tertiary)] text-white flex items-center justify-center font-bold"
-                style={{ borderRadius: "16px 16px 4px 16px" }}
-              >
-                <Sparkles size={24} />
-              </button>
-              <span className="text-sm md:text-base font-black tracking-[0.5em] text-[var(--foreground)] uppercase [writing-mode:vertical-rl] rotate-180 opacity-40 font-['Fira_Code',monospace]">
-                CAREERLENS
-              </span>
-            </div>
-
-            {/* Nav Actions */}
-            <div className="flex flex-col gap-4 items-center w-full px-4">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenDashboard) onOpenDashboard();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Dashboard"
-              >
-                <LayoutDashboard
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsNavOpen(false)}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--primary)] border border-transparent text-white flex items-center justify-center transition-all duration-300 shadow-md shadow-[var(--primary)]/20 group"
-                title="Resume Upload & Analysis"
-              >
-                <Upload
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenMockInterview) onOpenMockInterview();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Mock AI Interview"
-              >
-                <Bot
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenProfile) onOpenProfile();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Profile"
-              >
-                <User
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <div className="w-8 h-[2px] bg-[var(--border)] rounded-full mx-auto my-3 opacity-50"></div>
-
-              <button
-                onClick={toggleTheme}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--border)] hover:bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Toggle Theme"
-              >
-                {isDarkMode ? (
-                  <Sun
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:rotate-45 transition-transform"
-                  />
-                ) : (
-                  <Moon
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:-rotate-12 transition-transform"
-                  />
-                )}
-              </button>
-            </div>
-          </nav>
-
-          {/* The Arrow/Bump Trigger - Always Visible */}
-          <button
-            onClick={() => setIsNavOpen(!isNavOpen)}
-            className="absolute -right-6 md:-right-7 top-1/2 -translate-y-1/2 w-6 md:w-7 h-24 bg-[var(--card-solid)] border-y border-r border-[var(--border)] border-l-0 flex items-center justify-end pr-1 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:text-[var(--primary)] transition-colors shadow-[4px_0_12px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none z-0"
-            style={{ borderRadius: "0 100% 100% 0 / 0 50% 50% 0" }}
-          >
-            <ChevronRight
-              size={16}
-              className={`transition-transform duration-500 shrink-0 ${isNavOpen ? "rotate-180" : "rotate-0"}`}
-            />
-          </button>
-        </div>
 
         {/* Ambient Background Glows (Cleaned of duplicates) */}
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,var(--primary-glow)_0%,transparent_60%)] pointer-events-none z-0 transition-colors duration-500"></div>
@@ -406,76 +378,201 @@ export default function ResumeUpload({
               onSubmit={handleSubmit}
               className="w-full flex flex-col gap-8 animate-fade-in-up delay-150"
             >
-              {/* 1. Resume Upload Zone */}
+              {/* 1. Resume Upload / Vault Zone */}
               <div className="w-full flex flex-col gap-3">
                 <label className="text-xs font-bold text-[var(--foreground)]/50 uppercase tracking-[0.2em] font-['Fira_Code',monospace] ml-4">
                   01 // Source Document
                 </label>
 
-                <div
-                  className={`relative w-full border-2 border-dashed rounded-[2.5rem] transition-all duration-300 flex flex-col items-center justify-center overflow-hidden
-                    ${isDragging ? "border-[var(--primary)] bg-[var(--primary)]/5 scale-[1.02]" : "border-[var(--border)] bg-[var(--input-glass)] hover:bg-[var(--card-solid)] hover:border-[var(--primary)]/50"}
-                    ${file ? "p-6" : "p-10"} hover:shadow-sm`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={(e) => handleFileChange(e.target.files[0])}
-                  />
-
-                  {file ? (
-                    <div className="flex items-center justify-between w-full bg-[var(--card-solid)] border border-[var(--border)] rounded-full p-4 shadow-sm animate-fade-in-up">
-                      <div className="flex items-center gap-4 overflow-hidden">
-                        <div className="w-12 h-12 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center shrink-0">
-                          <FileText size={24} />
+                {file || vaultFile ? (
+                  <div className="w-full flex flex-col gap-3 animate-fade-in-up">
+                    {file && (
+                      <div className="flex items-center justify-between w-full bg-[var(--card-solid)] border border-[var(--border)] rounded-full p-4 shadow-sm">
+                        <div className="flex items-center gap-4 overflow-hidden">
+                          <div className="w-12 h-12 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center shrink-0">
+                            <FileText size={24} />
+                          </div>
+                          <div className="flex flex-col truncate pr-4">
+                            <span className="font-bold text-[var(--foreground)] truncate">
+                              {file.name}
+                            </span>
+                            <span className="text-xs font-medium text-[var(--foreground)]/50 uppercase tracking-wider">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col truncate pr-4">
-                          <span className="font-bold text-[var(--foreground)] truncate">
-                            {file.name}
-                          </span>
-                          <span className="text-xs font-medium text-[var(--foreground)]/50 uppercase tracking-wider">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </span>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={removeFile}
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 hover:shadow-md hover:scale-105 active:scale-95 transition-all shrink-0"
+                        >
+                          <X size={20} strokeWidth={2.5} />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={removeFile}
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 hover:shadow-md hover:scale-105 active:scale-95 transition-all shrink-0"
+                    )}
+
+                    {vaultFile && (
+                      <div
+                        className="flex items-center justify-between w-full border rounded-[2rem] p-4 shadow-sm"
+                        style={{
+                          backgroundColor: `var(--color-box${vaultFile.boxId}-bg)`,
+                          borderColor: `var(--color-box${vaultFile.boxId}-border)`,
+                          color: `var(--color-box${vaultFile.boxId}-text)`,
+                        }}
                       >
-                        <X size={20} strokeWidth={2.5} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center text-center cursor-pointer pointer-events-none">
-                      <div className="w-16 h-16 rounded-[1.5rem] bg-[var(--card-solid)] shadow-md flex items-center justify-center text-[var(--foreground)]/40 mb-4 border border-[var(--border)] rotate-3">
-                        <UploadCloud
-                          size={28}
-                          strokeWidth={2}
-                          className="-rotate-3"
-                        />
+                        <div className="flex items-center gap-4 overflow-hidden">
+                          <div
+                            className="w-12 h-12 rounded-[1rem] flex items-center justify-center shadow-sm shrink-0"
+                            style={{
+                              backgroundColor: `var(--color-box${vaultFile.boxId}-icon-bg)`,
+                              color: `var(--color-box${vaultFile.boxId}-icon)`,
+                            }}
+                          >
+                            <FileText size={22} />
+                          </div>
+                          <div className="flex flex-col truncate pr-4">
+                            <span className="font-bold truncate">
+                              {vaultFile.name}
+                            </span>
+                            <span
+                              className="text-xs font-medium uppercase tracking-wider opacity-80"
+                              style={{
+                                color: `var(--color-box${vaultFile.boxId}-muted)`,
+                              }}
+                            >
+                              From Vault • {vaultFile.size}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeFile}
+                          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/20 dark:bg-black/20 hover:scale-110 shadow-sm shrink-0"
+                        >
+                          <X size={20} strokeWidth={2.5} />
+                        </button>
                       </div>
-                      <span className="text-lg font-bold text-[var(--foreground)] mb-1">
-                        Click or drag & drop to upload
-                      </span>
-                      <span className="text-sm font-medium text-[var(--foreground)]/50">
-                        PDF or DOCX (Max 5MB)
-                      </span>
-                    </div>
-                  )}
+                    )}
 
-                  {!file && (
+                    {file && (
+                      <div className="bg-[var(--input-glass)] border border-[var(--border)] rounded-[1.5rem] p-4 flex items-start gap-3 shadow-sm mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setStoreConsent(!storeConsent)}
+                          className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border shrink-0 transition-colors ${storeConsent ? "bg-[var(--primary)] border-[var(--primary)] text-white" : "border-[var(--foreground)]/30 bg-[var(--background)]"}`}
+                        >
+                          {storeConsent && <Check size={14} strokeWidth={3} />}
+                        </button>
+                        <div
+                          className="flex flex-col cursor-pointer"
+                          onClick={() => setStoreConsent(!storeConsent)}
+                        >
+                          <span className="text-sm font-bold text-[var(--foreground)]">
+                            Store in Resume Vault
+                          </span>
+                          <span className="text-[11px] font-medium text-[var(--foreground)]/50 leading-relaxed mt-1">
+                            If unchecked, this analysis will be view-only in
+                            your history. You won't be able to chat, apply
+                            edits, or interact with it later.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col gap-4 animate-fade-in-up">
                     <div
-                      className="absolute inset-0 cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    />
-                  )}
-                </div>
+                      className={`relative w-full border-2 border-dashed rounded-[2.5rem] transition-all duration-300 flex flex-col items-center justify-center overflow-hidden
+                        ${isDragging ? "border-[var(--primary)] bg-[var(--primary)]/5 scale-[1.02]" : "border-[var(--border)] bg-[var(--input-glass)] hover:bg-[var(--card-solid)] hover:border-[var(--primary)]/50"}
+                        p-8 hover:shadow-sm`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={(e) => handleFileChange(e.target.files[0])}
+                      />
+                      <div className="flex flex-col items-center text-center cursor-pointer pointer-events-none">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-[var(--card-solid)] shadow-md flex items-center justify-center text-[var(--foreground)]/40 mb-4 border border-[var(--border)] rotate-3">
+                          <UploadCloud
+                            size={28}
+                            strokeWidth={2}
+                            className="-rotate-3"
+                          />
+                        </div>
+                        <span className="text-lg font-bold text-[var(--foreground)] mb-1">
+                          Click or drag & drop to upload
+                        </span>
+                        <span className="text-sm font-medium text-[var(--foreground)]/50">
+                          PDF or DOCX (Max 5MB)
+                        </span>
+                      </div>
+                      <div
+                        className="absolute inset-0 cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      />
+                    </div>
+
+                    <div className="mt-2 flex flex-col">
+                      <div className="flex items-center gap-2 mb-3 ml-4">
+                        <FolderKanban
+                          size={14}
+                          className="text-[var(--foreground)]/40"
+                        />
+                        <span className="text-[10px] font-bold text-[var(--foreground)]/50 uppercase tracking-[0.2em] font-['Fira_Code',monospace]">
+                          Or select from Vault
+                        </span>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar px-1 snap-x">
+                        {mockVaultResumes.map((resume) => (
+                          <div
+                            key={resume.id}
+                            onClick={() => {
+                              setVaultFile(resume);
+                              setFile(null);
+                            }}
+                            className="snap-start shrink-0 w-[220px] border rounded-[1.5rem] p-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all cursor-pointer flex flex-col group relative"
+                            style={{
+                              backgroundColor: `var(--color-box${resume.boxId}-bg)`,
+                              borderColor: `var(--color-box${resume.boxId}-border)`,
+                              color: `var(--color-box${resume.boxId}-text)`,
+                            }}
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div
+                                className="w-10 h-10 rounded-[0.8rem] flex items-center justify-center shadow-sm"
+                                style={{
+                                  backgroundColor: `var(--color-box${resume.boxId}-icon-bg)`,
+                                  color: `var(--color-box${resume.boxId}-icon)`,
+                                }}
+                              >
+                                <FileText size={18} />
+                              </div>
+                            </div>
+                            <h4 className="font-extrabold text-sm truncate mb-1">
+                              {resume.name}
+                            </h4>
+                            <div
+                              className="flex justify-between items-center text-[10px] font-bold mt-auto pt-2"
+                              style={{
+                                color: `var(--color-box${resume.boxId}-muted)`,
+                              }}
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <Clock size={10} /> {resume.date}
+                              </span>
+                              <span>{resume.size}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. Target Role Section */}
@@ -542,7 +639,7 @@ export default function ResumeUpload({
 
                       {/* Search Dropdown Selector (Opaque & Elevated) - Adjusted shadow for light mode */}
                       {showTitleDropdown && (
-                        <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-[var(--card-solid)] border border-[var(--border)] rounded-2xl shadow-2xl z-[100] max-h-60 overflow-y-auto">
+                        <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-[var(--card-solid)] border border-[var(--border)] rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] z-[100] max-h-60 overflow-y-auto custom-scrollbar">
                           {filteredTitles.length > 0 ? (
                             filteredTitles.map((title) => (
                               <div
@@ -572,7 +669,7 @@ export default function ResumeUpload({
                         onChange={(e) => setJobDescription(e.target.value)}
                         placeholder="Paste the full job description here..."
                         rows={6}
-                        className={`${inputBaseClass} !rounded-[2rem] resize-none py-5`}
+                        className={`${inputBaseClass} !rounded-[2rem] resize-none py-5 custom-scrollbar`}
                       />
                     </div>
                   )}
@@ -588,15 +685,15 @@ export default function ResumeUpload({
                   className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:flex-1 rounded-full font-bold text-base tracking-wide transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] hover:border-[var(--primary)]/50 hover:bg-[var(--card-solid)] shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
                 >
                   <LayoutDashboard size={20} strokeWidth={2.5} />
-                  Return to Landing
+                  Return to Dashboard
                 </button>
 
                 {/* Primary Action */}
                 <button
                   type="submit"
-                  disabled={!file || isAnalyzing}
+                  disabled={(!file && !vaultFile) || isAnalyzing}
                   className={`flex items-center justify-center gap-3 px-10 py-4 w-full sm:flex-1 rounded-full font-bold text-lg tracking-wide transition-all duration-300 shadow-xl border border-transparent 
-                    ${!file ? "opacity-50 cursor-not-allowed bg-[var(--foreground)]/20 text-[var(--foreground)]/50" : "bg-[var(--foreground)] text-[var(--background)] hover:scale-[1.02] active:scale-[0.98] hover:border-[var(--border)] shadow-black/10"}`}
+                    ${!file && !vaultFile ? "opacity-50 cursor-not-allowed bg-[var(--foreground)]/20 text-[var(--foreground)]/50" : "bg-[var(--foreground)] text-[var(--background)] hover:scale-[1.02] active:scale-[0.98] hover:border-[var(--border)] shadow-black/10"}`}
                 >
                   {isAnalyzing ? (
                     <div className="flex items-center gap-3">
@@ -610,7 +707,9 @@ export default function ResumeUpload({
                       <Sparkles
                         size={20}
                         className={
-                          file ? "text-[var(--primary)]" : "text-inherit"
+                          file || vaultFile
+                            ? "text-[var(--primary)]"
+                            : "text-inherit"
                         }
                       />
                       Launch Analysis

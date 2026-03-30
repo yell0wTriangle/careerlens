@@ -26,7 +26,11 @@ import {
   Upload,
   Bot,
   ChevronRight,
+  Award,
+  Plus,
+  Trash2,
 } from "lucide-react";
+import OverlaySidebarNav from "../components/OverlaySidebarNav";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -177,6 +181,111 @@ const PRESETS = {
     "Time Management",
     "Critical Thinking",
   ],
+};
+
+const COMPLEX_FIELDS = {
+  projects: {
+    title: "Project",
+    fields: [
+      { key: "name", placeholder: "Project Name", type: "text", width: "full" },
+      {
+        key: "url",
+        placeholder: "Project URL (optional)",
+        type: "url",
+        width: "full",
+      },
+      {
+        key: "startDate",
+        placeholder: "Start Date (e.g. Jan 2023)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "endDate",
+        placeholder: "End Date (e.g. Present)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "description",
+        placeholder: "Brief Description",
+        type: "textarea",
+        width: "full",
+      },
+      {
+        key: "highlights",
+        placeholder: "Add a highlight & press Enter...",
+        type: "tags",
+        width: "full",
+      },
+    ],
+  },
+  work: {
+    title: "Experience",
+    fields: [
+      { key: "name", placeholder: "Company Name", type: "text", width: "half" },
+      {
+        key: "position",
+        placeholder: "Job Title / Position",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "url",
+        placeholder: "Company URL (optional)",
+        type: "url",
+        width: "full",
+      },
+      {
+        key: "startDate",
+        placeholder: "Start Date (e.g. Jan 2023)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "endDate",
+        placeholder: "End Date (e.g. Present)",
+        type: "text",
+        width: "half",
+      },
+      {
+        key: "summary",
+        placeholder: "Role Summary",
+        type: "textarea",
+        width: "full",
+      },
+      {
+        key: "highlights",
+        placeholder: "Add an achievement & press Enter...",
+        type: "tags",
+        width: "full",
+      },
+    ],
+  },
+  certificates: {
+    title: "Certificate",
+    fields: [
+      {
+        key: "name",
+        placeholder: "Certificate / Award Name",
+        type: "text",
+        width: "full",
+      },
+      {
+        key: "issuer",
+        placeholder: "Issuing Organization",
+        type: "text",
+        width: "half",
+      },
+      { key: "date", placeholder: "Date Issued", type: "text", width: "half" },
+      {
+        key: "url",
+        placeholder: "Credential URL (optional)",
+        type: "url",
+        width: "full",
+      },
+    ],
+  },
 };
 
 // --- Vertical Selector ---
@@ -516,8 +625,9 @@ function TagsInput({
         width: "100%",
       }}
     >
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-        {presets.map((item) => {
+      {presets && presets.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {presets.map((item) => {
           const active = values.includes(item);
           return (
             <button
@@ -557,8 +667,9 @@ function TagsInput({
               {item}
             </button>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       <input
         type="text"
@@ -580,10 +691,10 @@ function TagsInput({
         className={!isStd ? "high-contrast-placeholder" : ""}
       />
 
-      {values.filter((v) => !presets.includes(v)).length > 0 && (
+      {values.filter((v) => !presets || !presets.includes(v)).length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
           {values
-            .filter((v) => !presets.includes(v))
+            .filter((v) => !presets || !presets.includes(v))
             .map((tag) => (
               <div
                 key={tag}
@@ -625,6 +736,272 @@ function TagsInput({
       )}
     </div>
   );
+}
+
+function ComplexEditor({
+  type,
+  profile,
+  onChange,
+  setHasChanges,
+  boxId = 1,
+  icon: IconComponent,
+}) {
+  const [editingItem, setEditingItem] = useState(null);
+  const schema = COMPLEX_FIELDS[type];
+  const items = profile[type] || [];
+  const isStd = boxId === 1;
+
+  const handleSave = () => {
+    onChange([...items, editingItem]);
+    setHasChanges(true);
+    setEditingItem(null);
+  };
+
+  const handleRemove = (idx) => {
+    onChange(items.filter((_, i) => i !== idx));
+    setHasChanges(true);
+  };
+
+  const cardBg = isStd ? "var(--card)" : "rgba(255, 255, 255, 0.12)";
+  const cardBorder = isStd ? "var(--border)" : "rgba(255, 255, 255, 0.25)";
+  const textColor = `var(--color-box${boxId}-text)`;
+  const mutedColor = `var(--color-box${boxId}-muted)`;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "1.2rem",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: `var(--color-box${boxId}-icon-bg)`,
+            color: `var(--color-box${boxId}-icon)`,
+            transform: "rotate(-3deg)",
+          }}
+        >
+          <IconComponent size={24} style={{ transform: "rotate(3deg)" }} />
+        </div>
+        <h3
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: 900,
+            letterSpacing: "-.03em",
+            color: textColor,
+          }}
+        >
+          {schema.title}s
+        </h3>
+      </div>
+
+      {!editingItem ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+            gap: "1rem",
+          }}
+        >
+          {items.map((item, idx) => (
+            <div
+              key={idx}
+              className="group"
+              style={{
+                position: "relative",
+                padding: "1.5rem",
+                borderRadius: "1.5rem",
+                background: cardBg,
+                border: `1px solid ${cardBorder}`,
+                color: textColor,
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
+              <button
+                onClick={() => handleRemove(idx)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{
+                  position: "absolute",
+                  top: "1rem",
+                  right: "1rem",
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ef4444",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+              <h4 style={{ fontSize: "1.1rem", fontWeight: 800, paddingRight: "2rem" }}>
+                {item.name}
+              </h4>
+              {(item.position || item.issuer) && (
+                <p style={{ fontSize: "0.875rem", fontWeight: 700 }}>
+                  {item.position || item.issuer}
+                </p>
+              )}
+              {(item.startDate || item.date) && (
+                <p style={{ fontSize: "0.75rem", color: mutedColor }}>
+                  {item.startDate || item.date} {item.endDate ? `- ${item.endDate}` : ""}
+                </p>
+              )}
+              {(item.description || item.summary) && (
+                <p style={{ fontSize: "0.875rem", color: mutedColor }}>
+                  {item.description || item.summary}
+                </p>
+              )}
+            </div>
+          ))}
+
+          <button
+            onClick={() => {
+              const newItem = {};
+              schema.fields.forEach(
+                (f) => (newItem[f.key] = f.type === "tags" ? [] : ""),
+              );
+              setEditingItem(newItem);
+            }}
+            style={{
+              padding: "1.5rem",
+              borderRadius: "1.5rem",
+              border: `2px dashed ${cardBorder}`,
+              background: "transparent",
+              color: mutedColor,
+              minHeight: "160px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.75rem",
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={24} />
+            <span style={{ fontWeight: 700 }}>Add New {schema.title}</span>
+          </button>
+        </div>
+      ) : (
+        <div
+          style={{
+            padding: "2rem",
+            borderRadius: "2rem",
+            background: isStd ? "var(--card-solid)" : "rgba(0,0,0,0.15)",
+            border: `1px solid ${cardBorder}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+          }}
+        >
+          <h3 style={{ fontSize: "1.25rem", fontWeight: 800, color: textColor }}>
+            New {schema.title}
+          </h3>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+              gap: "1rem",
+            }}
+          >
+            {schema.fields.map((field) => {
+              if (field.type === "textarea") {
+                return (
+                  <textarea
+                    key={field.key}
+                    rows={3}
+                    placeholder={field.placeholder}
+                    value={editingItem[field.key]}
+                    onChange={(e) =>
+                      setEditingItem({ ...editingItem, [field.key]: e.target.value })
+                    }
+                    style={{ ...inpStyle(isStd, textColor), gridColumn: "1 / -1", resize: "none" }}
+                  />
+                );
+              }
+              if (field.type === "tags") {
+                return (
+                  <div key={field.key} style={{ gridColumn: "1 / -1" }}>
+                    <input
+                      type="text"
+                      placeholder={field.placeholder}
+                      style={inpStyle(isStd, textColor)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          const val = e.target.value.trim().replace(/,$/, "");
+                          if (val) {
+                            setEditingItem((prev) => ({
+                              ...prev,
+                              [field.key]: [...(prev[field.key] || []), val],
+                            }));
+                          }
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              }
+              return (
+                <input
+                  key={field.key}
+                  type={field.type}
+                  placeholder={field.placeholder}
+                  value={editingItem[field.key]}
+                  onChange={(e) =>
+                    setEditingItem({ ...editingItem, [field.key]: e.target.value })
+                  }
+                  style={{ ...inpStyle(isStd, textColor), gridColumn: field.width === "half" ? "span 1" : "1 / -1" }}
+                />
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+            <button
+              onClick={() => setEditingItem(null)}
+              style={{ padding: "0.75rem 1.25rem", borderRadius: 9999, border: `1px solid ${cardBorder}`, background: cardBg, color: textColor, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!editingItem.name}
+              style={{ padding: "0.75rem 1.5rem", borderRadius: 9999, border: "none", background: isStd ? "var(--primary)" : "#FFFFFF", color: isStd ? "var(--primary-foreground)" : `var(--color-box${boxId}-bg)`, fontWeight: 700, cursor: "pointer", opacity: editingItem.name ? 1 : 0.5 }}
+            >
+              Save {schema.title}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function inpStyle(isStd, textColor) {
+  return {
+    width: "100%",
+    padding: "1rem 1.25rem",
+    borderRadius: "var(--input-radius)",
+    background: isStd ? "var(--card)" : "rgba(255, 255, 255, 0.15)",
+    border: `1px solid ${isStd ? "var(--border)" : "rgba(255, 255, 255, 0.3)"}`,
+    color: textColor,
+    fontFamily: "'Plus Jakarta Sans',sans-serif",
+    fontSize: "0.9375rem",
+    outline: "none",
+    boxSizing: "border-box",
+  };
 }
 
 // --- App ---
@@ -674,6 +1051,23 @@ export default function Profile({
     portfolio: "https://alexdev.tech",
     improvementArea:
       "Working on mastering System Design and backend architecture using Node.js.",
+    work: [
+      {
+        name: "Tech Corp",
+        position: "Frontend Developer",
+        url: "https://techcorp.com",
+        startDate: "Jan 2022",
+        endDate: "Present",
+        summary:
+          "Developed performant user interfaces using React and Tailwind.",
+        highlights: [
+          "Improved load time by 40%",
+          "Led a team of 3 junior developers",
+        ],
+      },
+    ],
+    projects: [],
+    certificates: [],
   });
 
   const [hasChanges, setHasChanges] = useState(false);
@@ -857,141 +1251,21 @@ export default function Profile({
         style={theme}
         className="relative w-full min-h-screen bg-[var(--background)] font-['Plus_Jakarta_Sans',sans-serif] text-[var(--foreground)] selection:bg-[var(--primary)] selection:text-[var(--primary-foreground)] transition-colors duration-500 overflow-x-hidden"
       >
-        {/* Backdrop for blurring the main content */}
-        <div
-          className={`fixed inset-0 z-[8000] bg-black/40 backdrop-blur-md transition-all duration-500 ${
-            isNavOpen
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsNavOpen(false)}
+        <OverlaySidebarNav
+          isOpen={isNavOpen}
+          setIsOpen={setIsNavOpen}
+          activeItem="profile"
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
+          onOpenLanding={onOpenLanding}
+          onOpenDashboard={onBackToDashboard}
+          onOpenResumeAnalysis={onOpenResumeAnalysis}
+          onOpenMockInterview={onOpenMockInterview}
+          onOpenProfile={undefined}
+          closeOnLogoClick
+          backdropZClass="z-[8000]"
+          navZClass="z-[9000]"
         />
-
-        {/* Overlay Sidebar Navbar */}
-        <div
-          className={`fixed left-0 top-0 bottom-0 z-[9000] flex transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-            isNavOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <nav className="relative z-10 w-20 md:w-24 h-full flex flex-col items-center justify-between py-8 md:py-10 bg-[var(--card-solid)] border-r border-[var(--border)] shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-            {/* Top Logo */}
-            <div className="flex flex-col items-center gap-6">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenLanding) onOpenLanding();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 bg-[var(--tertiary)] text-white flex items-center justify-center font-bold"
-                style={{ borderRadius: "16px 16px 4px 16px" }}
-              >
-                <Sparkles size={24} />
-              </button>
-              <span className="text-sm md:text-base font-black tracking-[0.5em] text-[var(--foreground)] uppercase [writing-mode:vertical-rl] rotate-180 opacity-40 font-['Fira_Code',monospace]">
-                CAREERLENS
-              </span>
-            </div>
-
-            {/* Nav Actions */}
-            <div className="flex flex-col gap-4 items-center w-full px-4">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onBackToDashboard) onBackToDashboard();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Dashboard"
-              >
-                <LayoutDashboard
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenResumeAnalysis) onOpenResumeAnalysis();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Resume Upload & Analysis"
-              >
-                <Upload
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenMockInterview) onOpenMockInterview();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Mock AI Interview"
-              >
-                <Bot
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsNavOpen(false)}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--primary)] border border-transparent text-white flex items-center justify-center transition-all duration-300 shadow-md shadow-[var(--primary)]/20 group"
-                title="Profile"
-              >
-                <UserIcon
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <div className="w-8 h-[2px] bg-[var(--border)] rounded-full mx-auto my-3 opacity-50"></div>
-
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--border)] hover:bg-[var(--muted)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Toggle Theme"
-              >
-                {isDarkMode ? (
-                  <Sun
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:rotate-45 transition-transform"
-                  />
-                ) : (
-                  <Moon
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:-rotate-12 transition-transform"
-                  />
-                )}
-              </button>
-            </div>
-          </nav>
-
-          {/* The Arrow/Bump Trigger - Always Visible */}
-          <button
-            onClick={() => setIsNavOpen(!isNavOpen)}
-            className="absolute -right-6 md:-right-7 top-1/2 -translate-y-1/2 w-6 md:w-7 h-24 bg-[var(--card-solid)] border-y border-r border-[var(--border)] border-l-0 flex items-center justify-end pr-1 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:text-[var(--primary)] transition-colors shadow-[4px_0_12px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none z-0"
-            style={{ borderRadius: "0 100% 100% 0 / 0 50% 50% 0" }}
-          >
-            <ChevronRight
-              size={16}
-              className={`transition-transform duration-500 shrink-0 ${isNavOpen ? "rotate-180" : "rotate-0"}`}
-            />
-          </button>
-        </div>
 
         {/* Ambient glows */}
         <div
@@ -1702,6 +1976,44 @@ export default function Profile({
               </div>
             </div>
 
+            {/* BOX 3 — Detailed Work Experience */}
+            <div
+              className="bento col12 fu d2"
+              style={{
+                ...boxStyles(3),
+                gridColumn: "span 12",
+                padding: "2.5rem",
+              }}
+            >
+              <ComplexEditor
+                boxId={3}
+                type="work"
+                profile={profile}
+                onChange={(v) => set("work", v)}
+                setHasChanges={setHasChanges}
+                icon={Briefcase}
+              />
+            </div>
+
+            {/* BOX 1 — Projects */}
+            <div
+              className="bento col12 fu d3"
+              style={{
+                ...boxStyles(1),
+                gridColumn: "span 12",
+                padding: "2.5rem",
+              }}
+            >
+              <ComplexEditor
+                boxId={1}
+                type="projects"
+                profile={profile}
+                onChange={(v) => set("projects", v)}
+                setHasChanges={setHasChanges}
+                icon={Code}
+              />
+            </div>
+
             {/* BOX 2 — Skills */}
             <div
               className="bento col7 fu d3"
@@ -1775,11 +2087,11 @@ export default function Profile({
               </div>
             </div>
 
-            {/* BOX 3 — Experience */}
+            {/* BOX 1 — Experience Overview */}
             <div
               className="bento col5 fu d3"
               style={{
-                ...boxStyles(3),
+                ...boxStyles(1),
                 gridColumn: "span 5",
                 padding: "2.5rem",
                 display: "flex",
@@ -1796,18 +2108,18 @@ export default function Profile({
                     marginBottom: "2rem",
                   }}
                 >
-                  <div style={badge(3, true)}>
-                    <Clock size={24} style={{ transform: "rotate(3deg)" }} />
+                  <div style={badge(1)}>
+                    <Clock size={24} style={{ transform: "rotate(-3deg)" }} />
                   </div>
                   <h3
                     style={{
                       fontSize: "1.25rem",
                       fontWeight: 900,
                       letterSpacing: "-.03em",
-                      color: "var(--color-box3-text)",
+                      color: "var(--color-box1-text)",
                     }}
                   >
-                    Experience
+                    Experience Overview
                   </h3>
                 </div>
                 <div
@@ -1824,7 +2136,7 @@ export default function Profile({
                       fontSize: "4.5rem",
                       fontWeight: 900,
                       letterSpacing: "-.04em",
-                      color: "var(--color-box3-text)",
+                      color: "var(--color-box1-text)",
                       lineHeight: 1,
                       display: "flex",
                       alignItems: "baseline",
@@ -1838,7 +2150,7 @@ export default function Profile({
                         fontSize: "1rem",
                         fontWeight: 700,
                         letterSpacing: ".14em",
-                        color: "var(--color-box3-muted)",
+                        color: "var(--color-box1-muted)",
                         fontFamily: "'Fira Code',monospace",
                       }}
                     >
@@ -1856,7 +2168,7 @@ export default function Profile({
                     className={isDarkMode ? "thumb-dark" : "thumb-light"}
                     style={{
                       width: "100%",
-                      background: `linear-gradient(to right,${isDarkMode ? "var(--color-box3-icon)" : "#FFFFFF"} ${(profile.yearsOfExperience / 15) * 100}%,rgba(0,0,0,0.15) ${(profile.yearsOfExperience / 15) * 100}%)`,
+                      background: `linear-gradient(to right,var(--primary) ${(profile.yearsOfExperience / 15) * 100}%,var(--muted) ${(profile.yearsOfExperience / 15) * 100}%)`,
                     }}
                   />
                 </div>
@@ -1871,10 +2183,10 @@ export default function Profile({
                     marginBottom: "1.5rem",
                   }}
                 >
-                  <div style={badge(3)}>
+                  <div style={badge(1, true)}>
                     <GraduationCap
                       size={24}
-                      style={{ transform: "rotate(-3deg)" }}
+                      style={{ transform: "rotate(3deg)" }}
                     />
                   </div>
                   <h3
@@ -1882,7 +2194,7 @@ export default function Profile({
                       fontSize: "1.25rem",
                       fontWeight: 900,
                       letterSpacing: "-.03em",
-                      color: "var(--color-box3-text)",
+                      color: "var(--color-box1-text)",
                     }}
                   >
                     Education
@@ -1901,7 +2213,7 @@ export default function Profile({
                   value={profile.educationLevel}
                   onChange={(v) => set("educationLevel", v)}
                   boxId={3}
-                  onOpenStateChange={(s) => setOpenBoxId(s ? 3 : null)}
+                  onOpenStateChange={(s) => setOpenBoxId(s ? 1 : null)}
                 />
               </div>
 
@@ -1914,10 +2226,10 @@ export default function Profile({
                     marginBottom: "1.5rem",
                   }}
                 >
-                  <div style={badge(3, true)}>
+                  <div style={badge(1)}>
                     <MessageSquare
                       size={24}
-                      style={{ transform: "rotate(3deg)" }}
+                      style={{ transform: "rotate(-3deg)" }}
                     />
                   </div>
                   <h3
@@ -1925,14 +2237,14 @@ export default function Profile({
                       fontSize: "1.25rem",
                       fontWeight: 900,
                       letterSpacing: "-.03em",
-                      color: "var(--color-box3-text)",
+                      color: "var(--color-box1-text)",
                     }}
                   >
                     Languages
                   </h3>
                 </div>
                 <TagsInput
-                  boxId={3}
+                  boxId={1}
                   field="languages"
                   values={profile.languages}
                   presets={PRESETS.languages}
@@ -1940,6 +2252,25 @@ export default function Profile({
                   onChange={(v) => set("languages", v)}
                 />
               </div>
+            </div>
+
+            {/* BOX 2 — Certificates */}
+            <div
+              className="bento col12 fu d3"
+              style={{
+                ...boxStyles(2),
+                gridColumn: "span 12",
+                padding: "2.5rem",
+              }}
+            >
+              <ComplexEditor
+                boxId={2}
+                type="certificates"
+                profile={profile}
+                onChange={(v) => set("certificates", v)}
+                setHasChanges={setHasChanges}
+                icon={Award}
+              />
             </div>
           </div>
         </div>

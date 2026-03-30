@@ -12,6 +12,7 @@ import {
   Upload,
   Sparkles,
 } from "lucide-react";
+import OverlaySidebarNav from "../components/OverlaySidebarNav";
 
 // --- CareerLens Brand Theme Configurations ---
 const lightTheme = {
@@ -151,138 +152,30 @@ export default function MockInterview({
         style={currentTheme}
         className="relative w-full min-h-screen font-['Plus_Jakarta_Sans',sans-serif] text-[var(--foreground)] bg-[var(--background)] transition-colors duration-700 overflow-x-hidden flex"
       >
-        {/* --- 1. OVERLAY BACKDROP --- */}
-        <div
-          className={`fixed inset-0 z-[8000] bg-black/40 backdrop-blur-md transition-all duration-500 ${
-            isNavOpen
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsNavOpen(false)}
+        <OverlaySidebarNav
+          isOpen={isNavOpen}
+          setIsOpen={setIsNavOpen}
+          activeItem="mock"
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
+          onOpenLanding={onOpenLanding}
+          onOpenDashboard={onOpenDashboard}
+          onOpenResumeAnalysis={onOpenResumeAnalysis}
+          onOpenMockInterview={undefined}
+          onOpenProfile={onOpenProfile}
+          backdropZClass="z-[8000]"
+          navZClass="z-[9000]"
+          navBgClass="bg-[var(--card)]"
+          navBorderClass="border-[var(--card-border)]"
+          logoBgClass="bg-[var(--accent-blue)]"
+          inactiveButtonClass="bg-[var(--card)] border border-[var(--card-border)] hover:border-[var(--accent-coral)] hover:bg-[var(--accent-coral)] hover:text-white text-[var(--foreground)] shadow-sm"
+          activeButtonClass="bg-[var(--accent-coral)] border border-transparent text-white shadow-md shadow-[var(--accent-coral)]/20"
+          themeButtonClass="bg-[var(--card)] border border-[var(--card-border)] hover:bg-[var(--background)] text-[var(--foreground)] shadow-sm"
+          dividerClass="bg-[var(--card-border)]"
+          triggerBgClass="bg-[var(--card)]"
+          triggerBorderClass="border-[var(--card-border)]"
+          triggerTextClass="text-[var(--foreground)] opacity-60 hover:opacity-100 hover:text-[var(--accent-coral)]"
         />
-
-        {/* --- 2. FIXED SIDEBAR NAVBAR --- */}
-        <div
-          className={`fixed left-0 top-0 bottom-0 z-[9000] flex transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-            isNavOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <nav className="relative z-10 w-20 md:w-24 h-full flex flex-col items-center justify-between py-8 md:py-10 bg-[var(--card)] border-r border-[var(--card-border)] shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-            {/* Top Logo */}
-            <div className="flex flex-col items-center gap-6">
-              <button
-                type="button"
-                onClick={onOpenLanding}
-                className="w-12 h-12 md:w-14 md:h-14 bg-[var(--accent-blue)] text-white flex items-center justify-center font-bold"
-                style={{ borderRadius: "16px 16px 4px 16px" }}
-              >
-                <Sparkles size={24} />
-              </button>
-              <span className="text-sm md:text-base font-black tracking-[0.5em] text-[var(--foreground)] uppercase [writing-mode:vertical-rl] rotate-180 opacity-40 font-['Fira_Code',monospace]">
-                CAREERLENS
-              </span>
-            </div>
-
-            {/* Nav Actions */}
-            <div className="flex flex-col gap-4 items-center w-full px-4">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenDashboard) onOpenDashboard();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--card)] border border-[var(--card-border)] hover:border-[var(--accent-coral)] hover:bg-[var(--accent-coral)] hover:text-white text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Dashboard"
-              >
-                <LayoutDashboard
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenResumeAnalysis) onOpenResumeAnalysis();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--card)] border border-[var(--card-border)] hover:border-[var(--accent-coral)] hover:bg-[var(--accent-coral)] hover:text-white text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Resume Upload & Analysis"
-              >
-                <Upload
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              {/* Active State for Mock AI Interview */}
-              <button
-                type="button"
-                onClick={() => setIsNavOpen(false)}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--accent-coral)] border border-transparent text-white flex items-center justify-center transition-all duration-300 shadow-md shadow-[var(--accent-coral)]/20 group"
-                title="Mock AI Interview"
-              >
-                <Bot
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenProfile) onOpenProfile();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--card)] border border-[var(--card-border)] hover:border-[var(--accent-coral)] hover:bg-[var(--accent-coral)] hover:text-white text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Profile"
-              >
-                <UserIcon
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <div className="w-8 h-[2px] bg-[var(--card-border)] rounded-full mx-auto my-3 opacity-50"></div>
-
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--card)] border border-[var(--card-border)] hover:bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Toggle Theme"
-              >
-                {isDarkMode ? (
-                  <Sun
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:rotate-45 transition-transform"
-                  />
-                ) : (
-                  <Moon
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:-rotate-12 transition-transform"
-                  />
-                )}
-              </button>
-            </div>
-          </nav>
-
-          {/* Pull-out Tab Trigger */}
-          <button
-            onClick={() => setIsNavOpen(!isNavOpen)}
-            className="absolute -right-6 md:-right-7 top-1/2 -translate-y-1/2 w-6 md:w-7 h-24 bg-[var(--card)] border-y border-r border-[var(--card-border)] border-l-0 flex items-center justify-end pr-1 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:text-[var(--accent-coral)] transition-colors shadow-[4px_0_12px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none z-0"
-            style={{ borderRadius: "0 100% 100% 0 / 0 50% 50% 0" }}
-          >
-            <ChevronRight
-              size={16}
-              className={`transition-transform duration-500 shrink-0 ${isNavOpen ? "rotate-180" : "rotate-0"}`}
-            />
-          </button>
-        </div>
 
         {/* --- 3. MAIN CONTENT AREA --- */}
         <main className="flex-1 flex items-center justify-center relative p-4 sm:p-12 w-full h-full min-h-screen">

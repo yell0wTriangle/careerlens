@@ -13,15 +13,12 @@ import {
   Code,
   Edit2,
   Plus,
-  Mail,
-  Phone,
   Github,
   Linkedin,
   GraduationCap,
   Globe,
   Award,
   FolderKanban,
-  Zap,
   Clock,
   Search,
   Inbox,
@@ -34,7 +31,9 @@ import {
   LayoutDashboard,
   Upload,
   Bot,
+  MessageSquare,
 } from "lucide-react";
+import OverlaySidebarNav from "../components/OverlaySidebarNav";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -125,28 +124,39 @@ const darkTheme = {
 
 const mockProfile = {
   name: "Alex Developer",
+  techDomain: "Web Development",
+  improvementArea:
+    "Working on mastering System Design and backend architecture using Node.js.",
   location: "Bhubaneswar, India",
-  role: "Software Engineer",
-  experience: "3rd Year B.Tech",
-  education: "B.Tech CSE, KIIT University",
-  bio: "Passionate 3rd-year Computer Science student focused on full-stack web development and modern system architecture. Ready to optimize my professional trajectory with AI insights.",
-  skills: ["React", "TypeScript", "Node.js", "Python", "C++", "TailwindCSS"],
+  educationLevel: "B.Tech CSE, KIIT University",
+  yearsOfExperience: 3,
+  expectedSalary: "12,00,000",
+  noticePeriod: "1 Month",
+  workPreference: "Hybrid",
+  targetRoles: ["Frontend Developer", "Software Engineer"],
+  techSkills: ["React", "TypeScript", "Node.js", "Python", "C++", "TailwindCSS"],
+  softSkills: ["Communication", "Agile", "Problem Solving"],
+  github: "github.com/alexdev",
+  linkedin: "linkedin.com/in/alexdev",
+  portfolio: "alexdev.tech",
+  work: [
+    {
+      name: "Tech Corp",
+      position: "Frontend Developer",
+      startDate: "Jan 2022",
+      endDate: "Present",
+    },
+  ],
   projects: [
-    "CareerLens AI Platform",
-    "Real-time Crypto Tracker",
-    "E-Commerce Microservices",
+    { name: "CareerLens AI Platform" },
+    { name: "Real-time Crypto Tracker" },
+    { name: "E-Commerce Microservices" },
   ],
-  certifications: [
-    "AWS Certified Cloud Practitioner",
-    "Meta Front-End Developer",
+  certificates: [
+    { name: "AWS Certified Cloud Practitioner" },
+    { name: "Meta Front-End Developer" },
   ],
-  contact: {
-    email: "alex.dev@kiit.edu",
-    phone: "+91 98765 43210",
-    github: "github.com/alexdev",
-    linkedin: "linkedin.com/in/alexdev",
-  },
-  languages: ["English (Native)", "Hindi (Fluent)"],
+  languages: ["English", "Hindi", "Odia"],
 };
 
 // Vault Data (5 items for perfect grid testing)
@@ -388,130 +398,20 @@ export default function Dashboard({
         .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
       `}</style>
 
-      {/* --- GLOBAL UNIFIED NAVBAR --- */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-md transition-all duration-500 ${
-          isNavOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsNavOpen(false)}
+      <OverlaySidebarNav
+        isOpen={isNavOpen}
+        setIsOpen={setIsNavOpen}
+        activeItem="dashboard"
+        isDarkMode={isDarkMode}
+        onToggleTheme={toggleTheme}
+        onOpenLanding={onOpenLanding}
+        onOpenDashboard={undefined}
+        onOpenResumeAnalysis={onOpenResumeAnalysis}
+        onOpenMockInterview={onOpenMockInterview}
+        onOpenProfile={onOpenProfile}
+        backdropZClass="z-40"
+        navZClass="z-50"
       />
-
-      <div
-        className={`fixed left-0 top-0 bottom-0 z-50 flex transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-          isNavOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <nav className="relative z-10 w-20 md:w-24 h-full flex flex-col items-center justify-between py-8 md:py-10 bg-[var(--card-solid)] border-r border-[var(--border)] shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-          <div className="flex flex-col items-center gap-6">
-            <button
-              type="button"
-              onClick={onOpenLanding}
-              className="w-12 h-12 md:w-14 md:h-14 bg-[var(--tertiary)] text-white flex items-center justify-center font-bold"
-              style={{ borderRadius: "16px 16px 4px 16px" }}
-            >
-              <Sparkles size={24} />
-            </button>
-            <span className="text-sm md:text-base font-black tracking-[0.5em] text-[var(--foreground)] uppercase [writing-mode:vertical-rl] rotate-180 opacity-40 font-['Fira_Code',monospace]">
-              CAREERLENS
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-4 items-center w-full px-4">
-            <button
-              type="button"
-              onClick={() => setIsNavOpen(false)}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--primary)] border border-transparent text-white flex items-center justify-center transition-all duration-300 shadow-md shadow-[var(--primary)]/20 group"
-              title="Dashboard"
-            >
-              <LayoutDashboard
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenResumeAnalysis) onOpenResumeAnalysis();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Resume Upload & Analysis"
-            >
-              <Upload
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenMockInterview) onOpenMockInterview();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Mock AI Interview"
-            >
-              <Bot
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenProfile) onOpenProfile();
-                setIsNavOpen(false);
-              }}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Profile"
-            >
-              <UserIcon
-                size={20}
-                strokeWidth={2}
-                className="group-hover:scale-110 transition-transform"
-              />
-            </button>
-
-            <div className="w-8 h-[2px] bg-[var(--border)] rounded-full mx-auto my-3 opacity-50"></div>
-
-            <button
-              onClick={toggleTheme}
-              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--background)] border border-[var(--border)] hover:border-[var(--border)] hover:bg-[var(--muted)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-              title="Toggle Theme"
-            >
-              {isDarkMode ? (
-                <Sun
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:rotate-45 transition-transform"
-                />
-              ) : (
-                <Moon
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:-rotate-12 transition-transform"
-                />
-              )}
-            </button>
-          </div>
-        </nav>
-
-        <button
-          onClick={() => setIsNavOpen(!isNavOpen)}
-          className="absolute -right-6 md:-right-7 top-1/2 -translate-y-1/2 w-6 md:w-7 h-24 bg-[var(--card-solid)] border-y border-r border-[var(--border)] border-l-0 flex items-center justify-end pr-1 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:text-[var(--primary)] transition-colors shadow-[4px_0_12px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none z-0"
-          style={{ borderRadius: "0 100% 100% 0 / 0 50% 50% 0" }}
-        >
-          <ChevronRight
-            size={16}
-            className={`transition-transform duration-500 shrink-0 ${isNavOpen ? "rotate-180" : "rotate-0"}`}
-          />
-        </button>
-      </div>
 
       {/* --- GLOBAL MODALS --- */}
       {actionModal.type && (
@@ -631,57 +531,82 @@ export default function Dashboard({
                     {mockProfile.name}
                   </h2>
                   <p className="text-[var(--foreground)]/60 font-bold uppercase text-[10px] tracking-wider truncate mt-0.5">
-                    {mockProfile.role}
+                    {mockProfile.techDomain}
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-6 shrink-0">
                 <div className="text-[var(--foreground)]/80 font-medium text-[13px] leading-relaxed border-b border-[var(--border)] pb-6">
-                  {mockProfile.bio}
+                  {mockProfile.improvementArea}
                 </div>
 
                 <div className="flex flex-col gap-3.5 border-b border-[var(--border)] pb-6">
                   <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm">
-                    <MapPin size={16} className="text-[var(--primary)]" />{" "}
-                    {mockProfile.location}
+                    <MapPin
+                      size={16}
+                      className="text-[var(--primary)] shrink-0"
+                    />{" "}
+                    <span className="truncate">{mockProfile.location}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm">
                     <GraduationCap
                       size={16}
-                      className="text-[var(--secondary)]"
+                      className="text-[var(--secondary)] shrink-0"
                     />{" "}
-                    {mockProfile.education}
+                    <span className="truncate">{mockProfile.educationLevel}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm">
-                    <Briefcase size={16} className="text-[var(--tertiary)]" />{" "}
-                    {mockProfile.experience}
+                    <Briefcase
+                      size={16}
+                      className="text-[var(--tertiary)] shrink-0"
+                    />{" "}
+                    <span className="truncate">
+                      {mockProfile.yearsOfExperience} Years Experience
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3.5 border-b border-[var(--border)] pb-6">
                   <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm hover:text-[var(--primary)] cursor-pointer">
-                    <Mail size={16} className="opacity-40" />{" "}
-                    {mockProfile.contact.email}
+                    <Globe size={16} className="opacity-40 shrink-0" />{" "}
+                    <span className="truncate">{mockProfile.portfolio}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm hover:text-[var(--primary)] cursor-pointer">
-                    <Phone size={16} className="opacity-40" />{" "}
-                    {mockProfile.contact.phone}
+                    <Github size={16} className="opacity-40 shrink-0" />{" "}
+                    <span className="truncate">{mockProfile.github}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm hover:text-[var(--primary)] cursor-pointer">
-                    <Github size={16} className="opacity-40" />{" "}
-                    {mockProfile.contact.github}
+                    <Linkedin size={16} className="opacity-40 shrink-0" />{" "}
+                    <span className="truncate">{mockProfile.linkedin}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[var(--foreground)]/80 font-medium text-sm hover:text-[var(--primary)] cursor-pointer">
-                    <Linkedin size={16} className="opacity-40" />{" "}
-                    {mockProfile.contact.linkedin}
+                </div>
+
+                <div className="flex flex-col gap-3.5 border-b border-[var(--border)] pb-6">
+                  <div className="flex items-start gap-3 text-[var(--foreground)]/80 font-medium text-sm">
+                    <Target
+                      size={16}
+                      className="text-[var(--primary)] shrink-0 mt-0.5"
+                    />
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <span className="text-xs font-bold text-[var(--foreground)]/80 leading-snug">
+                        {mockProfile.targetRoles.join(", ")}
+                      </span>
+                      <span className="text-[10px] font-bold text-[var(--foreground)]/40 uppercase tracking-wider">
+                        ₹{mockProfile.expectedSalary} •{" "}
+                        {mockProfile.workPreference} • {mockProfile.noticePeriod}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3 text-[var(--foreground)]/80 font-medium border-b border-[var(--border)] pb-6">
-                  <Code size={18} className="text-[var(--accent)] mt-0.5" />
+                  <Code
+                    size={18}
+                    className="text-[var(--accent)] mt-0.5 shrink-0"
+                  />
                   <div className="flex flex-wrap gap-2">
-                    {mockProfile.skills.map((skill) => (
+                    {mockProfile.techSkills.map((skill) => (
                       <span
                         key={skill}
                         className="px-2.5 py-1.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] font-bold text-[var(--foreground)]"
@@ -691,6 +616,44 @@ export default function Dashboard({
                     ))}
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3 text-[var(--foreground)]/80 font-medium border-b border-[var(--border)] pb-6">
+                  <MessageSquare
+                    size={18}
+                    className="text-[var(--secondary)] mt-0.5 shrink-0"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {mockProfile.softSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2.5 py-1.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[11px] font-bold text-[var(--foreground)]"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {mockProfile.work.length > 0 && (
+                  <div className="flex items-start gap-3 text-[var(--foreground)]/80 font-medium border-b border-[var(--border)] pb-6">
+                    <Briefcase
+                      size={18}
+                      className="text-[var(--tertiary)] mt-0.5 shrink-0"
+                    />
+                    <div className="flex flex-col gap-3 w-full">
+                      {mockProfile.work.map((w, idx) => (
+                        <div key={idx} className="flex flex-col">
+                          <span className="text-xs font-bold text-[var(--foreground)]/80">
+                            {w.position}
+                          </span>
+                          <span className="text-[10px] font-bold text-[var(--foreground)]/50 uppercase tracking-wide mt-0.5">
+                            {w.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-3 text-[var(--foreground)]/80 font-medium border-b border-[var(--border)] pb-6">
                   <FolderKanban
@@ -703,7 +666,7 @@ export default function Dashboard({
                         key={idx}
                         className="text-xs font-bold text-[var(--foreground)]/80"
                       >
-                        {proj}
+                        {proj.name}
                       </div>
                     ))}
                   </div>
@@ -715,12 +678,12 @@ export default function Dashboard({
                     className="text-[var(--secondary)] mt-0.5 shrink-0"
                   />
                   <div className="flex flex-col gap-2.5 w-full">
-                    {mockProfile.certifications.map((cert, idx) => (
+                    {mockProfile.certificates.map((cert, idx) => (
                       <div
                         key={idx}
                         className="text-xs font-bold text-[var(--foreground)]/80 leading-snug"
                       >
-                        {cert}
+                        {cert.name}
                       </div>
                     ))}
                   </div>

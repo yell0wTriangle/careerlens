@@ -22,6 +22,7 @@ import {
   User as UserIcon,
   Upload,
 } from "lucide-react";
+import OverlaySidebarNav from "../components/OverlaySidebarNav";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -327,137 +328,22 @@ export default function Results({
         className="relative w-full min-h-screen flex flex-col overflow-x-hidden overflow-y-auto bg-[var(--background)] font-['Plus_Jakarta_Sans',sans-serif] text-[var(--foreground)] selection:bg-[var(--primary)] selection:text-[var(--primary-foreground)] transition-colors duration-500 pb-24"
       >
         {/* Backdrop for blurring the main content */}
-        <div
-          className={`fixed inset-0 z-[80] bg-black/40 backdrop-blur-md transition-all duration-500 ${
-            isNavOpen
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsNavOpen(false)}
+        <OverlaySidebarNav
+          isOpen={isNavOpen}
+          setIsOpen={setIsNavOpen}
+          activeItem="resume"
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
+          onOpenLanding={onOpenLanding}
+          onOpenDashboard={onOpenDashboard}
+          onOpenResumeAnalysis={undefined}
+          onOpenMockInterview={onOpenMockInterview}
+          onOpenProfile={onOpenProfile}
+          backdropZClass="z-[80]"
+          navZClass="z-[90]"
+          inactiveButtonClass="bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] shadow-sm"
+          themeButtonClass="bg-[var(--input-glass)] border border-transparent hover:border-[var(--border)] hover:bg-[var(--background)] text-[var(--foreground)] shadow-sm"
         />
-
-        {/* Overlay Sidebar Navbar */}
-        <div
-          className={`fixed left-0 top-0 bottom-0 z-[90] flex transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-            isNavOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <nav className="relative z-10 w-20 md:w-24 h-full flex flex-col items-center justify-between py-8 md:py-10 bg-[var(--card-solid)] border-r border-[var(--border)] shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-            <div className="flex flex-col items-center gap-6">
-              <button
-                type="button"
-                onClick={onOpenLanding}
-                className="w-12 h-12 md:w-14 md:h-14 bg-[var(--tertiary)] text-white flex items-center justify-center font-bold"
-                style={{ borderRadius: "16px 16px 4px 16px" }}
-              >
-                <Sparkles size={24} />
-              </button>
-              <span className="text-sm md:text-base font-black tracking-[0.5em] text-[var(--foreground)] uppercase [writing-mode:vertical-rl] rotate-180 opacity-40 font-['Fira_Code',monospace]">
-                CAREERLENS
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-4 items-center w-full px-4">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenDashboard) onOpenDashboard();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Dashboard"
-              >
-                <LayoutDashboard
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenResumeAnalysis) onOpenResumeAnalysis();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--primary)] border border-transparent text-white flex items-center justify-center transition-all duration-300 shadow-md shadow-[var(--primary)]/20 group"
-                title="Resume Upload & Analysis"
-              >
-                <Upload
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              {/* Mock AI Interview Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenMockInterview) onOpenMockInterview();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Mock AI Interview"
-              >
-                <Bot
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenProfile) onOpenProfile();
-                  setIsNavOpen(false);
-                }}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Profile"
-              >
-                <UserIcon
-                  size={20}
-                  strokeWidth={2}
-                  className="group-hover:scale-110 transition-transform"
-                />
-              </button>
-
-              <div className="w-8 h-[2px] bg-[var(--border)] rounded-full mx-auto my-3 opacity-50"></div>
-
-              <button
-                onClick={toggleTheme}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--input-glass)] border border-transparent hover:border-[var(--border)] hover:bg-[var(--background)] text-[var(--foreground)] flex items-center justify-center transition-all duration-300 shadow-sm group"
-                title="Toggle Theme"
-              >
-                {isDarkMode ? (
-                  <Sun
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:rotate-45 transition-transform"
-                  />
-                ) : (
-                  <Moon
-                    size={20}
-                    strokeWidth={2}
-                    className="group-hover:-rotate-12 transition-transform"
-                  />
-                )}
-              </button>
-            </div>
-          </nav>
-
-          <button
-            onClick={() => setIsNavOpen(!isNavOpen)}
-            className="absolute -right-6 md:-right-7 top-1/2 -translate-y-1/2 w-6 md:w-7 h-24 bg-[var(--card-solid)] border-y border-r border-[var(--border)] border-l-0 flex items-center justify-end pr-1 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:text-[var(--primary)] transition-colors shadow-[4px_0_12px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none z-0"
-            style={{ borderRadius: "0 100% 100% 0 / 0 50% 50% 0" }}
-          >
-            <ChevronRight
-              size={16}
-              className={`transition-transform duration-500 shrink-0 ${isNavOpen ? "rotate-180" : "rotate-0"}`}
-            />
-          </button>
-        </div>
 
         {/* Ambient Glows */}
         <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,var(--primary-glow)_0%,transparent_60%)] pointer-events-none z-0 transition-colors duration-500"></div>
