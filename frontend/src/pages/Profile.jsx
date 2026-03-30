@@ -739,6 +739,202 @@ function TagsInput({
   );
 }
 
+function MultiLocationInput({
+  values,
+  onChange,
+  placeholder,
+  boxId = 1,
+  onOpenStateChange,
+}) {
+  const isStd = boxId === 1;
+  const [query, setQuery] = useState("");
+  const [showSug, setShowSug] = useState(false);
+  const ref = useRef(null);
+  const suggestions = usePlacesAutocomplete(query, ALL_LOCATIONS).filter(
+    (loc) => !values.includes(loc),
+  );
+
+  useEffect(() => {
+    const fn = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setShowSug(false);
+    };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
+  }, []);
+
+  useEffect(() => {
+    if (onOpenStateChange) onOpenStateChange(showSug && query.length > 0);
+  }, [showSug, query, onOpenStateChange]);
+
+  const addLoc = (loc) => {
+    if (loc && !values.includes(loc)) {
+      onChange([...values, loc]);
+    }
+    setQuery("");
+    setShowSug(false);
+  };
+
+  const handleKey = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const val = query.trim().replace(/,$/, "");
+      if (val) addLoc(val);
+    }
+  };
+
+  return (
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: "1rem", width: "100%" }}
+    >
+      <div ref={ref} style={{ position: "relative" }}>
+        <MapPin
+          size={20}
+          style={{
+            position: "absolute",
+            left: 20,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: `var(--color-box${boxId}-muted)`,
+            pointerEvents: "none",
+            zIndex: 2,
+          }}
+        />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setShowSug(true);
+          }}
+          onFocus={() => setShowSug(true)}
+          onKeyDown={handleKey}
+          placeholder={placeholder}
+          style={{
+            width: "100%",
+            padding: "1rem 1.5rem 1rem 3.5rem",
+            borderRadius: "var(--input-radius)",
+            background: isStd ? "var(--card)" : "rgba(255, 255, 255, 0.22)",
+            border: `1px solid ${isStd ? "var(--border)" : "rgba(255, 255, 255, 0.4)"}`,
+            color: `var(--color-box${boxId}-text)`,
+            fontFamily: "'Plus Jakarta Sans',sans-serif",
+            fontSize: "1rem",
+            fontWeight: 600,
+            outline: "none",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+          }}
+          className={!isStd ? "high-contrast-placeholder" : ""}
+        />
+        {showSug && query.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 10px)",
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              background: isStd ? "var(--card)" : `var(--color-box${boxId}-bg)`,
+              filter: isStd ? "none" : "brightness(0.85)",
+              border: `1px solid ${isStd ? "var(--border)" : "rgba(255,255,255,0.2)"}`,
+              borderRadius: "1.25rem",
+              boxShadow: "0 20px 48px rgba(0,0,0,.15)",
+              overflow: "hidden",
+              maxHeight: 240,
+              overflowY: "auto",
+            }}
+          >
+            {suggestions.length > 0 ? (
+              suggestions.map((loc, i) => (
+                <button
+                  key={loc}
+                  type="button"
+                  onClick={() => addLoc(loc)}
+                  style={{
+                    width: "100%",
+                    padding: ".875rem 1.5rem",
+                    textAlign: "left",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom:
+                      i < suggestions.length - 1
+                        ? `1px solid ${isStd ? "var(--border)" : "rgba(255,255,255,0.1)"}`
+                        : "none",
+                    color: `var(--color-box${boxId}-text)`,
+                    fontFamily: "'Plus Jakarta Sans',sans-serif",
+                    fontSize: ".9rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {loc}
+                </button>
+              ))
+            ) : (
+              <button
+                type="button"
+                onClick={() => addLoc(query)}
+                style={{
+                  width: "100%",
+                  padding: ".875rem 1.5rem",
+                  textAlign: "left",
+                  background: "transparent",
+                  border: "none",
+                  color: `var(--color-box${boxId}-text)`,
+                  fontFamily: "'Plus Jakarta Sans',sans-serif",
+                  fontSize: ".9rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Use "{query}"
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {values.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {values.map((loc) => (
+            <div
+              key={loc}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 1rem",
+                borderRadius: 9999,
+                background: isStd ? "var(--foreground)" : "#FFFFFF",
+                color: isStd ? "var(--background)" : `var(--color-box${boxId}-bg)`,
+                fontSize: "0.75rem",
+                fontWeight: 700,
+              }}
+            >
+              <span>{loc}</span>
+              <button
+                type="button"
+                onClick={() => onChange(values.filter((v) => v !== loc))}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 900,
+                  fontSize: "1rem",
+                  color: "inherit",
+                  opacity: 0.6,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ComplexEditor({
   type,
   profile,
@@ -1035,6 +1231,7 @@ export default function Profile({
     name: "Alex Developer",
     location: "Bengaluru, India",
     relocate: "Yes",
+    relocationDestinations: [],
     workPreference: "Hybrid",
     visaSponsorship: "No",
     expectedSalary: "12,00,000",
@@ -1972,6 +2169,29 @@ export default function Profile({
                     />
                   </div>
                 </div>
+
+                {profile.relocate === "Yes" && (
+                  <div
+                    className="fu"
+                    style={{
+                      gridColumn: "span 3",
+                      paddingTop: "1.5rem",
+                      borderTop: "1px solid rgba(255,255,255,0.15)",
+                      animationDuration: "0.3s",
+                    }}
+                  >
+                    <label style={monoLabel(4)}>
+                      Preferred Relocation Destinations
+                    </label>
+                    <MultiLocationInput
+                      boxId={4}
+                      values={profile.relocationDestinations || []}
+                      placeholder="Search and add destinations..."
+                      onChange={(v) => set("relocationDestinations", v)}
+                      onOpenStateChange={(s) => setOpenBoxId(s ? 4 : null)}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
