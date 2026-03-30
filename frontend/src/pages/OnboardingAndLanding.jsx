@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import OverlaySidebarNav from "../components/OverlaySidebarNav";
 import usePlacesAutocomplete from "../hooks/usePlacesAutocomplete";
+import { onboardingApi } from "../api";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -221,6 +222,8 @@ const COMPLEX_FIELDS = {
 const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
   const [step, setStep] = useState(0);
   const [editingItem, setEditingItem] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [formData, setFormData] = useState({
     location: "",
     relocate: "No",
@@ -282,8 +285,17 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
     allLocations,
   );
 
+  const sanitizeSalaryInput = (value) =>
+    value.replace(/[^\d,]/g, "").replace(/,{2,}/g, ",");
+
   const handleChange = (field, value) =>
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [field]:
+        field === "expectedSalary" && typeof value === "string"
+          ? sanitizeSalaryInput(value)
+          : value,
+    }));
 
   const handleAddTag = (field, e) => {
     if (e.key === "Enter" || e.key === ",") {
@@ -591,6 +603,23 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
     }
   };
 
+  const handleFinish = async () => {
+    if (!isStepValid() || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      await onComplete(formData);
+    } catch (error) {
+      setSubmitError(error.message || "Unable to complete onboarding right now.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const inputBaseClass =
     "w-full px-6 py-4 bg-[var(--input-glass)] border border-[var(--border)] rounded-[var(--input-radius)] text-lg font-medium text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 focus:bg-[var(--card-solid)] transition-all placeholder:text-[var(--foreground)]/40 shadow-sm";
 
@@ -888,7 +917,8 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
               ₹
             </div>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={currentValue}
               onChange={(e) => handleChange(currentConfig.id, e.target.value)}
               placeholder={currentConfig.placeholder}
@@ -1204,11 +1234,11 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
             </button>
           ) : (
             <button
-              onClick={onComplete}
-              disabled={!isStepValid()}
+              onClick={handleFinish}
+              disabled={!isStepValid() || isSubmitting}
               className={`flex items-center gap-2 px-8 py-3.5 rounded-full font-bold text-sm tracking-wide transition-all duration-300 ${isStepValid() ? "bg-[var(--foreground)] text-[var(--background)] shadow-xl shadow-black/10 hover:scale-105" : "opacity-50 cursor-not-allowed bg-[var(--muted)] text-[var(--foreground)]/40"}`}
             >
-              FINISH{" "}
+              {isSubmitting ? "SAVING…" : "FINISH"}{" "}
               <Check
                 size={18}
                 strokeWidth={2.5}
@@ -1217,6 +1247,11 @@ const Onboarding = ({ onComplete, isDarkMode, toggleTheme }) => {
             </button>
           )}
         </div>
+        {submitError && (
+          <div className="px-10 pb-6 text-sm font-semibold text-red-500 text-right">
+            {submitError}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1512,7 +1547,14 @@ export default function OnboardingAndLanding({
           aria-hidden={isOnboardingComplete}
         >
           <Onboarding
-            onComplete={() => {
+            onComplete={async (formData) => {
+              try {
+                await onboardingApi.create(formData);
+              } catch (error) {
+                if (error?.status !== 409) {
+                  throw error;
+                }
+              }
               setIsOnboardingComplete(true);
               if (onOnboardingComplete) onOnboardingComplete();
             }}

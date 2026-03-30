@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 
+import { authApi } from './api';
 import AuthLogin from './pages/AuthLogin';
 import OnboardingAndLanding from './pages/OnboardingAndLanding';
 import ResumeUpload from './pages/ResumeUpload';
@@ -26,6 +27,14 @@ function readBool(key, fallback = false) {
   } catch {
     return fallback;
   }
+}
+
+function themeToBool(theme) {
+  return theme === 'dark';
+}
+
+function boolToTheme(isDarkMode) {
+  return isDarkMode ? 'dark' : 'light';
 }
 
 function ProtectedRoute({ isAllowed, redirectTo, children }) {
@@ -80,6 +89,7 @@ function AppRoutes() {
   const [onboardingComplete, setOnboardingComplete] = useState(() =>
     readBool(STORAGE_KEYS.onboarding, false),
   );
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [hasAnalysisHistory, setHasAnalysisHistory] = useState(() =>
     readBool(STORAGE_KEYS.hasAnalysisHistory, false),
   );
@@ -107,6 +117,44 @@ function AppRoutes() {
     document.body.style.backgroundColor = baseColor;
   }, [isDarkMode]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncAuthState = async () => {
+      try {
+        const response = await authApi.me();
+        const user = response?.data;
+
+        if (!isMounted) {
+          return;
+        }
+
+        setIsAuthenticated(true);
+        setOnboardingComplete(Boolean(user?.isOnboarded));
+        if (user?.preferences?.theme === 'light' || user?.preferences?.theme === 'dark') {
+          setIsDarkMode(themeToBool(user.preferences.theme));
+        }
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setIsAuthenticated(false);
+        setOnboardingComplete(false);
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      }
+    };
+
+    void syncAuthState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handlers = useMemo(
     () => ({
       openDashboard: () => navigate('/dashboard'),
@@ -121,11 +169,25 @@ function AppRoutes() {
     [navigate],
   );
 
-  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+  const toggleDarkMode = () =>
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      if (isAuthenticated) {
+        void authApi.updatePreferences({ theme: boolToTheme(next) }).catch(() => {
+          // keep local preference even if network request fails
+        });
+      }
+      return next;
+    });
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = (user) => {
     setIsAuthenticated(true);
-    navigate(onboardingComplete ? '/landing' : '/onboarding');
+    const nextOnboardingComplete = typeof user?.isOnboarded === 'boolean' ? user.isOnboarded : onboardingComplete;
+    if (user?.preferences?.theme === 'light' || user?.preferences?.theme === 'dark') {
+      setIsDarkMode(themeToBool(user.preferences.theme));
+    }
+    setOnboardingComplete(nextOnboardingComplete);
+    navigate(nextOnboardingComplete ? '/landing' : '/onboarding');
   };
 
   const handleOnboardingComplete = () => {
@@ -138,12 +200,26 @@ function AppRoutes() {
     handlers.openResults();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Reset local state even if cookie is already expired.
+    }
+
     setIsAuthenticated(false);
     setOnboardingComplete(false);
     setHasAnalysisHistory(false);
     handlers.openAuth();
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0C0A09] text-[#F6F4EE] font-semibold tracking-wide">
+        Syncing CareerLens...
+      </div>
+    );
+  }
 
   return (
     <Routes>

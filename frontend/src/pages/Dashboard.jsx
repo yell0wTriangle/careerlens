@@ -34,6 +34,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import OverlaySidebarNav from "../components/OverlaySidebarNav";
+import { onboardingApi, resumesApi } from "../api";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -122,7 +123,7 @@ const darkTheme = {
   "--color-box4-icon": "#FF6B4A",
 };
 
-const mockProfile = {
+const DEFAULT_PROFILE = {
   name: "Alex Developer",
   techDomain: "Web Development",
   improvementArea:
@@ -159,44 +160,39 @@ const mockProfile = {
   languages: ["English", "Hindi", "Odia"],
 };
 
-// Vault Data (5 items for perfect grid testing)
-const initialResumes = [
-  {
-    id: "r1",
-    name: "Alex_Dev_Resume_2026.pdf",
-    date: "Oct 24, 2026",
-    size: "1.2 MB",
-    boxId: 1,
-  },
-  {
-    id: "r2",
-    name: "Frontend_Specific_v2.pdf",
-    date: "Oct 15, 2026",
-    size: "0.8 MB",
-    boxId: 2,
-  },
-  {
-    id: "r3",
-    name: "Backend_Architecture.pdf",
-    date: "Sep 28, 2026",
-    size: "1.5 MB",
-    boxId: 3,
-  },
-  {
-    id: "r4",
-    name: "Fullstack_General_OLD.pdf",
-    date: "Aug 10, 2026",
-    size: "2.1 MB",
-    boxId: 4,
-  },
-  {
-    id: "r5",
-    name: "Internship_Application_2025.pdf",
-    date: "Jul 22, 2025",
-    size: "1.1 MB",
-    boxId: 1,
-  },
-];
+const mergeProfileData = (data) => ({
+  ...DEFAULT_PROFILE,
+  ...(data || {}),
+  targetRoles: Array.isArray(data?.targetRoles) ? data.targetRoles : DEFAULT_PROFILE.targetRoles,
+  techSkills: Array.isArray(data?.techSkills) ? data.techSkills : DEFAULT_PROFILE.techSkills,
+  softSkills: Array.isArray(data?.softSkills) ? data.softSkills : DEFAULT_PROFILE.softSkills,
+  work: Array.isArray(data?.work) ? data.work : DEFAULT_PROFILE.work,
+  projects: Array.isArray(data?.projects) ? data.projects : DEFAULT_PROFILE.projects,
+  certificates: Array.isArray(data?.certificates) ? data.certificates : DEFAULT_PROFILE.certificates,
+  languages: Array.isArray(data?.languages) ? data.languages : DEFAULT_PROFILE.languages,
+});
+
+const formatResumeSize = (sizeBytes) => {
+  const mb = sizeBytes / (1024 * 1024);
+  return `${(mb < 0.1 ? 0.1 : mb).toFixed(1)} MB`;
+};
+
+const formatResumeDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const mapResumesForUi = (resumes) =>
+  (Array.isArray(resumes) ? resumes : []).map((resume, index) => ({
+    id: resume.id,
+    name: resume.displayName || resume.originalName || "Untitled Resume",
+    date: formatResumeDate(resume.createdAt || new Date().toISOString()),
+    size: formatResumeSize(Number(resume.sizeBytes || 0)),
+    boxId: (index % 4) + 1,
+  }));
 
 const initialHistory = [
   {
@@ -295,12 +291,14 @@ export default function Dashboard({
 }) {
   const [internalDarkMode, setInternalDarkMode] = useState(true);
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const [resumes, setResumes] = useState(initialResumes);
+  const [resumes, setResumes] = useState([]);
   const [history, setHistory] = useState(initialHistory);
+  const [mockProfile, setMockProfile] = useState(DEFAULT_PROFILE);
 
   // Modals & Inline interactions
   const [actionModal, setActionModal] = useState({ type: null, payload: null });
   const [renameInput, setRenameInput] = useState("");
+  const [isVaultBusy, setIsVaultBusy] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -324,6 +322,48 @@ export default function Dashboard({
     });
   }, [currentTheme]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProfile = async () => {
+      try {
+        const response = await onboardingApi.get();
+        if (!isActive) return;
+        setMockProfile(mergeProfileData(response?.data));
+      } catch {
+        if (!isActive) return;
+        setMockProfile(DEFAULT_PROFILE);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadResumes = async () => {
+      try {
+        const response = await resumesApi.list();
+        if (!isActive) return;
+        setResumes(mapResumesForUi(response?.data));
+      } catch {
+        if (!isActive) return;
+        setResumes([]);
+      }
+    };
+
+    loadResumes();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   // Prevent background scrolling when global modal is open
   useEffect(() => {
     if (actionModal.type) {
@@ -336,49 +376,84 @@ export default function Dashboard({
     };
   }, [actionModal.type]);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const sizeInMB = (file.size / (1024 * 1024)).toFixed(1);
-    const newResume = {
-      id: `r${Date.now()}`,
-      name: file.name,
-      date: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-      size: `${sizeInMB === "0.0" ? "0.1" : sizeInMB} MB`,
-      boxId: (resumes.length % 4) + 1,
-    };
-
-    setResumes((prev) => [newResume, ...prev]);
+    try {
+      setIsVaultBusy(true);
+      await resumesApi.upload(file);
+      const response = await resumesApi.list();
+      setResumes(mapResumesForUi(response?.data));
+    } catch (error) {
+      alert(error?.message || "Failed to upload resume.");
+    } finally {
+      setIsVaultBusy(false);
+    }
     e.target.value = null;
   };
 
-  const confirmResumeDelete = () => {
+  const confirmResumeDelete = async () => {
     if (actionModal.payload) {
-      setResumes((prev) => prev.filter((r) => r.id !== actionModal.payload));
+      try {
+        setIsVaultBusy(true);
+        await resumesApi.remove(actionModal.payload);
+        setResumes((prev) => prev.filter((r) => r.id !== actionModal.payload));
+      } catch (error) {
+        alert(error?.message || "Failed to delete resume.");
+      } finally {
+        setIsVaultBusy(false);
+      }
       setActionModal({ type: null, payload: null });
     }
   };
 
-  const confirmRename = () => {
+  const confirmRename = async () => {
     if (renameInput.trim() !== "" && actionModal.payload?.id) {
-      setResumes((prev) =>
-        prev.map((r) =>
-          r.id === actionModal.payload.id
-            ? {
-                ...r,
-                name: renameInput.endsWith(".pdf")
-                  ? renameInput
-                  : `${renameInput}.pdf`,
-              }
-            : r,
-        ),
-      );
-      setActionModal({ type: null, payload: null });
+      try {
+        setIsVaultBusy(true);
+        const response = await resumesApi.rename(actionModal.payload.id, renameInput.trim());
+        const updatedName =
+          response?.data?.displayName || renameInput.trim();
+        setResumes((prev) =>
+          prev.map((r) =>
+            r.id === actionModal.payload.id
+              ? {
+                  ...r,
+                  name: updatedName,
+                }
+              : r,
+          ),
+        );
+        setActionModal({ type: null, payload: null });
+      } catch (error) {
+        alert(error?.message || "Failed to rename resume.");
+      } finally {
+        setIsVaultBusy(false);
+      }
+    }
+  };
+
+  const openResumePreview = async (resume) => {
+    try {
+      setIsVaultBusy(true);
+      const response = await resumesApi.getViewUrl(resume.id);
+      const signedUrl = response?.data?.signedUrl;
+      if (!signedUrl) {
+        alert("Unable to generate resume preview link.");
+        return;
+      }
+      setActionModal({
+        type: "preview",
+        payload: {
+          name: resume.name,
+          url: signedUrl,
+        },
+      });
+    } catch (error) {
+      alert(error?.message || "Failed to open resume preview.");
+    } finally {
+      setIsVaultBusy(false);
     }
   };
 
@@ -435,6 +510,7 @@ export default function Dashboard({
                 </button>
                 <button
                   onClick={confirmResumeDelete}
+                  disabled={isVaultBusy}
                   className="flex-1 py-3.5 rounded-xl font-bold text-white bg-red-500 shadow-lg shadow-red-500/20"
                 >
                   Delete
@@ -461,6 +537,7 @@ export default function Dashboard({
                 </button>
                 <button
                   onClick={confirmRename}
+                  disabled={isVaultBusy}
                   className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[var(--primary)] shadow-lg shadow-[var(--primary)]/20"
                 >
                   Save
@@ -475,7 +552,7 @@ export default function Dashboard({
                   <div className="p-2 bg-[var(--tertiary)]/10 text-[var(--tertiary)] rounded-lg">
                     <FileText size={20} />
                   </div>
-                  {actionModal.payload}
+                  {actionModal.payload?.name}
                 </h3>
                 <button
                   onClick={() => setActionModal({ type: null, payload: null })}
@@ -484,25 +561,18 @@ export default function Dashboard({
                   <X size={20} />
                 </button>
               </div>
-              <div className="flex-1 bg-[var(--background)] rounded-[1.5rem] flex items-center justify-center border border-[var(--border)] relative overflow-hidden group">
-                <div className="w-[70%] max-w-[500px] h-full bg-white shadow-xl mt-8 rounded-t-sm flex flex-col p-8 md:p-12 gap-6 opacity-70 border border-gray-200">
-                  <div className="w-1/3 h-6 bg-gray-200 rounded-sm mb-4"></div>
-                  <div className="w-full h-px bg-gray-200 mb-2"></div>
-                  <div className="w-full h-3 bg-gray-100 rounded-sm"></div>
-                  <div className="w-[90%] h-3 bg-gray-100 rounded-sm"></div>
-                  <div className="w-[80%] h-3 bg-gray-100 rounded-sm mb-4"></div>
-                  <div className="w-1/4 h-5 bg-gray-200 rounded-sm mb-2"></div>
-                  <div className="w-full h-3 bg-gray-100 rounded-sm"></div>
-                  <div className="w-[85%] h-3 bg-gray-100 rounded-sm"></div>
-                </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/5 backdrop-blur-sm pointer-events-none">
-                  <div className="bg-[var(--card-solid)] border border-[var(--border)] px-6 py-4 rounded-full shadow-xl flex items-center gap-3">
-                    <Eye size={20} className="text-[var(--tertiary)]" />
-                    <span className="font-bold text-sm text-[var(--foreground)]">
-                      Interactive Viewer Simulated
-                    </span>
+              <div className="flex-1 bg-[var(--background)] rounded-[1.5rem] border border-[var(--border)] overflow-hidden">
+                {actionModal.payload?.url ? (
+                  <iframe
+                    title={actionModal.payload?.name || "Resume Preview"}
+                    src={actionModal.payload.url}
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-sm font-medium text-[var(--foreground)]/60">
+                    Preview is unavailable right now.
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -778,12 +848,7 @@ export default function Dashboard({
                       </div>
                       <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                         <button
-                          onClick={() =>
-                            setActionModal({
-                              type: "preview",
-                              payload: resume.name,
-                            })
-                          }
+                          onClick={() => openResumePreview(resume)}
                           className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 dark:bg-black/20 hover:scale-110 shadow-sm"
                           style={{
                             color: `var(--color-box${resume.boxId}-text)`,
@@ -855,9 +920,11 @@ export default function Dashboard({
 
                 <div className="flex flex-col">
                   {history.map((item) => {
-                    const isDeleted = !resumes.find(
-                      (r) => r.id === item.resumeId,
-                    );
+                    const shouldCheckDeletion =
+                      typeof item.resumeId === "string" && item.resumeId.length === 24;
+                    const isDeleted = shouldCheckDeletion
+                      ? !resumes.find((r) => r.id === item.resumeId)
+                      : false;
                     const scoreColor =
                       item.score >= 80
                         ? "text-[var(--tertiary)] bg-[var(--tertiary)]/10 border-[var(--tertiary)]/20"

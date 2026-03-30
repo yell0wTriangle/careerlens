@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ArrowLeft,
   UploadCloud,
@@ -21,6 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import OverlaySidebarNav from "../components/OverlaySidebarNav";
+import { resumesApi } from "../api";
 
 // --- Theme Configurations (Synced with Landing) ---
 const lightTheme = {
@@ -121,36 +122,27 @@ const darkTheme = {
   "--color-box4-icon": "#FF6B4A",
 };
 
-const mockVaultResumes = [
-  {
-    id: "r1",
-    name: "Alex_Dev_Resume_2026.pdf",
-    date: "Oct 24, 2026",
-    size: "1.2 MB",
-    boxId: 1,
-  },
-  {
-    id: "r2",
-    name: "Frontend_Specific_v2.pdf",
-    date: "Oct 15, 2026",
-    size: "0.8 MB",
-    boxId: 2,
-  },
-  {
-    id: "r3",
-    name: "Backend_Architecture.pdf",
-    date: "Sep 28, 2026",
-    size: "1.5 MB",
-    boxId: 3,
-  },
-  {
-    id: "r4",
-    name: "Fullstack_General_OLD.pdf",
-    date: "Aug 10, 2026",
-    size: "2.1 MB",
-    boxId: 4,
-  },
-];
+const formatResumeSize = (sizeBytes) => {
+  const mb = sizeBytes / (1024 * 1024);
+  return `${(mb < 0.1 ? 0.1 : mb).toFixed(1)} MB`;
+};
+
+const formatResumeDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const mapResumesForUi = (resumes) =>
+  (Array.isArray(resumes) ? resumes : []).map((resume, index) => ({
+    id: resume.id,
+    name: resume.displayName || resume.originalName || "Untitled Resume",
+    date: formatResumeDate(resume.createdAt || new Date().toISOString()),
+    size: formatResumeSize(Number(resume.sizeBytes || 0)),
+    boxId: (index % 4) + 1,
+  }));
 
 export default function ResumeUpload({
   onLaunchAnalysis,
@@ -173,6 +165,7 @@ export default function ResumeUpload({
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [vaultResumes, setVaultResumes] = useState([]);
 
   // Dropdown State & Data
   const [showTitleDropdown, setShowTitleDropdown] = useState(false);
@@ -216,6 +209,27 @@ export default function ResumeUpload({
   };
   const currentTheme = isDarkMode ? darkTheme : lightTheme;
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadResumes = async () => {
+      try {
+        const response = await resumesApi.list();
+        if (!isActive) return;
+        setVaultResumes(mapResumesForUi(response?.data));
+      } catch {
+        if (!isActive) return;
+        setVaultResumes([]);
+      }
+    };
+
+    loadResumes();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   // Drag and Drop Handlers
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -253,14 +267,23 @@ export default function ResumeUpload({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file && !vaultFile) return;
     setIsAnalyzing(true);
-    setTimeout(() => {
+
+    try {
+      if (file) {
+        await resumesApi.upload(file);
+      }
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        if (onLaunchAnalysis) onLaunchAnalysis();
+      }, 600);
+    } catch (error) {
       setIsAnalyzing(false);
-      if (onLaunchAnalysis) onLaunchAnalysis();
-    }, 2500);
+      alert(error?.message || "Failed to upload resume.");
+    }
   };
 
   const inputBaseClass =
@@ -528,7 +551,7 @@ export default function ResumeUpload({
                         </span>
                       </div>
                       <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar px-1 snap-x">
-                        {mockVaultResumes.map((resume) => (
+                        {vaultResumes.map((resume) => (
                           <div
                             key={resume.id}
                             onClick={() => {
@@ -685,7 +708,7 @@ export default function ResumeUpload({
                   className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:flex-1 rounded-full font-bold text-base tracking-wide transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] hover:border-[var(--primary)]/50 hover:bg-[var(--card-solid)] shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
                 >
                   <LayoutDashboard size={20} strokeWidth={2.5} />
-                  Return to Dashboard
+                  Return to Landing
                 </button>
 
                 {/* Primary Action */}

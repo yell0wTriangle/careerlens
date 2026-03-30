@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import OverlaySidebarNav from "../components/OverlaySidebarNav";
 import usePlacesAutocomplete from "../hooks/usePlacesAutocomplete";
+import { authApi, onboardingApi } from "../api";
 
 // --- Theme Configurations ---
 const lightTheme = {
@@ -1202,6 +1203,131 @@ function inpStyle(isStd, textColor) {
 }
 
 // --- App ---
+const DEFAULT_PROFILE = {
+  avatar: null,
+  name: "",
+  location: "Bengaluru, India",
+  relocate: "Yes",
+  relocationDestinations: [],
+  workPreference: "Hybrid",
+  visaSponsorship: "No",
+  expectedSalary: "12,00,000",
+  noticePeriod: "1 Month",
+  yearsOfExperience: 3,
+  educationLevel: "B.Tech / B.E.",
+  languages: ["English", "Hindi"],
+  targetRoles: ["Frontend Developer", "Software Engineer"],
+  techSkills: ["React", "JavaScript", "TypeScript"],
+  softSkills: ["Communication", "Agile"],
+  techDomain: "Web Development",
+  companySize: "Startup",
+  github: "https://github.com/alexdev",
+  linkedin: "https://linkedin.com/in/alexdev",
+  portfolio: "https://alexdev.tech",
+  improvementArea:
+    "Working on mastering System Design and backend architecture using Node.js.",
+  work: [
+    {
+      name: "Tech Corp",
+      position: "Frontend Developer",
+      url: "https://techcorp.com",
+      startDate: "Jan 2022",
+      endDate: "Present",
+      summary:
+        "Developed performant user interfaces using React and Tailwind.",
+      highlights: [
+        "Improved load time by 40%",
+        "Led a team of 3 junior developers",
+      ],
+    },
+  ],
+  projects: [],
+  certificates: [],
+};
+
+const isValidHttpUrl = (value) => {
+  if (!value || !value.trim()) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const sanitizeSalaryInput = (value) => {
+  return value.replace(/[^\d,]/g, "").replace(/,{2,}/g, ",");
+};
+
+const areValuesEqual = (a, b) => {
+  if (Object.is(a, b)) {
+    return true;
+  }
+
+  if (
+    a &&
+    b &&
+    typeof a === "object" &&
+    typeof b === "object"
+  ) {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
+const validateProfileData = (profile) => {
+  const errors = {};
+
+  if (!profile.name?.trim()) {
+    errors.name = "Full name is required.";
+  }
+
+  if (!profile.location?.trim()) {
+    errors.location = "Primary location is required.";
+  }
+
+  if (profile.expectedSalary && !/^[\d,]+$/.test(profile.expectedSalary)) {
+    errors.expectedSalary = "Salary should contain only numbers and commas.";
+  }
+
+  if (!isValidHttpUrl(profile.github)) {
+    errors.github = "Enter a valid GitHub URL (http/https).";
+  }
+
+  if (!isValidHttpUrl(profile.linkedin)) {
+    errors.linkedin = "Enter a valid LinkedIn URL (http/https).";
+  }
+
+  if (!isValidHttpUrl(profile.portfolio)) {
+    errors.portfolio = "Enter a valid portfolio URL (http/https).";
+  }
+
+  const workInvalid = (profile.work || []).findIndex((item) => !isValidHttpUrl(item?.url));
+  if (workInvalid >= 0) {
+    errors.work = `Work entry #${workInvalid + 1} has an invalid URL.`;
+  }
+
+  const projectInvalid = (profile.projects || []).findIndex((item) => !isValidHttpUrl(item?.url));
+  if (projectInvalid >= 0) {
+    errors.projects = `Project entry #${projectInvalid + 1} has an invalid URL.`;
+  }
+
+  const certificateInvalid = (profile.certificates || []).findIndex((item) => !isValidHttpUrl(item?.url));
+  if (certificateInvalid >= 0) {
+    errors.certificates = `Certificate entry #${certificateInvalid + 1} has an invalid URL.`;
+  }
+
+  return errors;
+};
+
 export default function Profile({
   onBackToDashboard,
   onLogout,
@@ -1226,50 +1352,12 @@ export default function Profile({
     setInternalDarkMode((prev) => !prev);
   };
 
-  const [profile, setProfile] = useState({
-    avatar: null,
-    name: "Alex Developer",
-    location: "Bengaluru, India",
-    relocate: "Yes",
-    relocationDestinations: [],
-    workPreference: "Hybrid",
-    visaSponsorship: "No",
-    expectedSalary: "12,00,000",
-    noticePeriod: "1 Month",
-    yearsOfExperience: 3,
-    educationLevel: "B.Tech / B.E.",
-    languages: ["English", "Hindi"],
-    targetRoles: ["Frontend Developer", "Software Engineer"],
-    techSkills: ["React", "JavaScript", "TypeScript"],
-    softSkills: ["Communication", "Agile"],
-    techDomain: "Web Development",
-    companySize: "Startup",
-    github: "https://github.com/alexdev",
-    linkedin: "https://linkedin.com/in/alexdev",
-    portfolio: "https://alexdev.tech",
-    improvementArea:
-      "Working on mastering System Design and backend architecture using Node.js.",
-    work: [
-      {
-        name: "Tech Corp",
-        position: "Frontend Developer",
-        url: "https://techcorp.com",
-        startDate: "Jan 2022",
-        endDate: "Present",
-        summary:
-          "Developed performant user interfaces using React and Tailwind.",
-        highlights: [
-          "Improved load time by 40%",
-          "Led a team of 3 junior developers",
-        ],
-      },
-    ],
-    projects: [],
-    certificates: [],
-  });
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
 
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [locQuery, setLocQuery] = useState("");
   const [showLocSug, setShowLocSug] = useState(false);
@@ -1277,16 +1365,53 @@ export default function Profile({
   const locRef = useRef(null);
 
   const set = (field, val) => {
-    setProfile((p) => ({ ...p, [field]: val }));
-    setHasChanges(true);
+    setProfile((p) => {
+      const currentValue = p[field];
+      if (areValuesEqual(currentValue, val)) {
+        return p;
+      }
+
+      setHasChanges(true);
+      setSaveError("");
+      setValidationErrors((prev) => {
+        if (!prev[field]) {
+          return prev;
+        }
+
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+
+      return { ...p, [field]: val };
+    });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const errors = validateProfileData(profile);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setSaveError(Object.values(errors)[0]);
+      return;
+    }
+
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    setSaveError("");
+    setValidationErrors({});
+
+    try {
+      await onboardingApi.update(profile);
       setHasChanges(false);
-    }, 900);
+    } catch (error) {
+      if (error?.status === 404) {
+        await onboardingApi.create(profile);
+        setHasChanges(false);
+      } else {
+        setSaveError("Unable to save changes right now.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarUpload = (e) => {
@@ -1314,6 +1439,63 @@ export default function Profile({
     };
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOnboarding = async () => {
+      try {
+        const [onboardingResult, meResult] = await Promise.allSettled([
+          onboardingApi.get(),
+          authApi.me(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const onboardingData =
+          onboardingResult.status === "fulfilled" ? onboardingResult.value?.data : null;
+        const meData = meResult.status === "fulfilled" ? meResult.value?.data : null;
+
+        if (!onboardingData && !meData) {
+          return;
+        }
+
+      setProfile((prev) => ({
+          ...prev,
+          ...onboardingData,
+          relocationDestinations: Array.isArray(onboardingData?.relocationDestinations)
+            ? onboardingData.relocationDestinations
+            : prev.relocationDestinations,
+          languages: Array.isArray(onboardingData?.languages) ? onboardingData.languages : prev.languages,
+          targetRoles: Array.isArray(onboardingData?.targetRoles) ? onboardingData.targetRoles : prev.targetRoles,
+          techSkills: Array.isArray(onboardingData?.techSkills) ? onboardingData.techSkills : prev.techSkills,
+          softSkills: Array.isArray(onboardingData?.softSkills) ? onboardingData.softSkills : prev.softSkills,
+          work: Array.isArray(onboardingData?.work) ? onboardingData.work : prev.work,
+          projects: Array.isArray(onboardingData?.projects) ? onboardingData.projects : prev.projects,
+          certificates: Array.isArray(onboardingData?.certificates)
+            ? onboardingData.certificates
+            : prev.certificates,
+          avatar: onboardingData?.avatar || prev.avatar,
+          name:
+            (typeof onboardingData?.name === "string" && onboardingData.name.trim()) ||
+            (typeof meData?.username === "string" && meData.username.trim()) ||
+            prev.name,
+        }));
+        setHasChanges(false);
+        setValidationErrors({});
+      } catch {
+        // keep existing local defaults if onboarding profile is unavailable
+      }
+    };
+
+    void loadOnboarding();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredLocs = usePlacesAutocomplete(locQuery, ALL_LOCATIONS);
@@ -1800,8 +1982,17 @@ export default function Profile({
                     type="text"
                     value={profile.name}
                     onChange={(e) => set("name", e.target.value)}
-                    style={inp1}
+                    placeholder="Your full name"
+                    style={{
+                      ...inp1,
+                      border: validationErrors.name ? "1px solid #ef4444" : inp1.border,
+                    }}
                   />
+                  {validationErrors.name && (
+                    <p style={{ marginTop: 6, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                      {validationErrors.name}
+                    </p>
+                  )}
                 </div>
                 <div ref={locRef}>
                   <label style={monoLabel(1)}>Primary Location</label>
@@ -1828,7 +2019,11 @@ export default function Profile({
                       onFocus={() => setShowLocSug(true)}
                       onBlur={() => setTimeout(() => setShowLocSug(false), 200)}
                       placeholder="e.g., Bhubaneswar, India"
-                      style={{ ...inp1, paddingLeft: "3.5rem" }}
+                      style={{
+                        ...inp1,
+                        paddingLeft: "3.5rem",
+                        border: validationErrors.location ? "1px solid #ef4444" : inp1.border,
+                      }}
                     />
                     {showLocSug && locQuery.length > 0 && (
                       <div
@@ -1879,6 +2074,11 @@ export default function Profile({
                       </div>
                     )}
                   </div>
+                  {validationErrors.location && (
+                    <p style={{ marginTop: 6, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                      {validationErrors.location}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1925,6 +2125,7 @@ export default function Profile({
                 <textarea
                   value={profile.improvementArea}
                   onChange={(e) => set("improvementArea", e.target.value)}
+                  placeholder="Tell us what you are currently improving (e.g., system design, leadership, DSA)."
                   rows={3}
                   style={{
                     ...inp1,
@@ -1978,6 +2179,8 @@ export default function Profile({
                           paddingLeft: "3.5rem",
                           fontFamily: "'Fira Code',monospace",
                           fontSize: ".8125rem",
+                          border:
+                            validationErrors[field] ? "1px solid #ef4444" : inp1.border,
                         }}
                       />
                     </div>
@@ -2004,10 +2207,20 @@ export default function Profile({
                         paddingLeft: "3.5rem",
                         fontFamily: "'Fira Code',monospace",
                         fontSize: ".8125rem",
+                        border: validationErrors.portfolio ? "1px solid #ef4444" : inp1.border,
                       }}
                     />
                   </div>
                 </div>
+                {(validationErrors.github ||
+                  validationErrors.linkedin ||
+                  validationErrors.portfolio) && (
+                  <p style={{ marginTop: 8, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                    {validationErrors.github ||
+                      validationErrors.linkedin ||
+                      validationErrors.portfolio}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -2082,9 +2295,12 @@ export default function Profile({
                       <input
                         type="text"
                         value={profile.expectedSalary}
-                        onChange={(e) => set("expectedSalary", e.target.value)}
+                        onChange={(e) =>
+                          set("expectedSalary", sanitizeSalaryInput(e.target.value))
+                        }
                         placeholder="8,00,000"
                         className="high-contrast-placeholder"
+                        inputMode="numeric"
                         style={{
                           flex: 1,
                           padding: "1rem 1rem 1rem 0",
@@ -2098,6 +2314,11 @@ export default function Profile({
                         }}
                       />
                     </div>
+                    {validationErrors.expectedSalary && (
+                      <p style={{ marginTop: 8, fontSize: 12, color: "#ffd6d6", fontWeight: 700 }}>
+                        {validationErrors.expectedSalary}
+                      </p>
+                    )}
                   </div>
                   <div
                     style={{
@@ -2212,6 +2433,11 @@ export default function Profile({
                 setHasChanges={setHasChanges}
                 icon={Briefcase}
               />
+              {validationErrors.work && (
+                <p style={{ marginTop: 10, fontSize: 12, color: "#ffd6d6", fontWeight: 700 }}>
+                  {validationErrors.work}
+                </p>
+              )}
             </div>
 
             {/* BOX 1 — Projects */}
@@ -2231,6 +2457,11 @@ export default function Profile({
                 setHasChanges={setHasChanges}
                 icon={Code}
               />
+              {validationErrors.projects && (
+                <p style={{ marginTop: 10, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                  {validationErrors.projects}
+                </p>
+              )}
             </div>
 
             {/* BOX 2 — Skills */}
@@ -2490,6 +2721,11 @@ export default function Profile({
                 setHasChanges={setHasChanges}
                 icon={Award}
               />
+              {validationErrors.certificates && (
+                <p style={{ marginTop: 10, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                  {validationErrors.certificates}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -2759,6 +2995,23 @@ export default function Profile({
             Save Now
           </button>
         </div>
+
+        {saveError && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: 12,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 301,
+              color: "#ef4444",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+            }}
+          >
+            {saveError}
+          </div>
+        )}
       </div>
     </>
   );

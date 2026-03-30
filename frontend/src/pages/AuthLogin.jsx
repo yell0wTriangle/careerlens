@@ -12,6 +12,7 @@ import {
   X,
   Apple,
 } from "lucide-react";
+import { authApi } from "../api";
 
 // --- Theme Configurations Strictly Aligned with Landing/Onboarding ---
 const lightTheme = {
@@ -77,20 +78,122 @@ export default function AuthLogin({ onAuthSuccess }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [notification, setNotification] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [formValues, setFormValues] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+  const [verificationCode, setVerificationCode] = useState("");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
   const currentTheme = isDarkMode ? darkTheme : lightTheme;
 
-  const handleSubmit = (e) => {
+  const handleChange = (field) => (event) => {
+    setFormValues((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setNotification({
-      title: "ACCESS REQUESTED",
-      message: `Syncing with CareerLens Engine for ${authMode === "login" ? "returning member" : "new user"}.`,
-    });
-    setTimeout(() => {
-      setNotification(null);
-      if (onAuthSuccess) onAuthSuccess();
-    }, 1500);
+    setIsSubmitting(true);
+
+    try {
+      if (authMode === "signup") {
+        setNotification({
+          title: "CREATING ACCOUNT",
+          message: "Setting up your CareerLens profile...",
+        });
+
+        await authApi.register({
+          username: formValues.username.trim(),
+          email: formValues.email.trim(),
+          password: formValues.password,
+        });
+
+        const registeredEmail = formValues.email.trim().toLowerCase();
+        setPendingVerificationEmail(registeredEmail);
+        setNotification({
+          title: "VERIFY EMAIL",
+          message: "Account created. Check your email for the verification code.",
+        });
+        return;
+      } else {
+        setNotification({
+          title: "ACCESS REQUESTED",
+          message: "Syncing with CareerLens Engine for returning member.",
+        });
+      }
+
+      const loginResponse = await authApi.login({
+        email: formValues.email.trim(),
+        password: formValues.password,
+      });
+
+      setNotification({
+        title: "ACCESS GRANTED",
+        message: "Your session is active and ready.",
+      });
+
+      if (onAuthSuccess) {
+        onAuthSuccess(loginResponse?.data?.user);
+      }
+    } catch (error) {
+      setNotification({
+        title: "REQUEST FAILED",
+        message: error.message || "Unable to complete authentication.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    setIsVerifying(true);
+
+    try {
+      await authApi.verifyEmail({
+        email: pendingVerificationEmail || formValues.email.trim(),
+        token: verificationCode.trim(),
+      });
+
+      setNotification({
+        title: "EMAIL VERIFIED",
+        message: "Your account is verified. You can now log in.",
+      });
+      setAuthMode("login");
+      setPendingVerificationEmail("");
+      setVerificationCode("");
+    } catch (error) {
+      setNotification({
+        title: "VERIFICATION FAILED",
+        message: error.message || "Unable to verify this code.",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setIsVerifying(true);
+
+    try {
+      const response = await authApi.resendVerification({
+        email: pendingVerificationEmail || formValues.email.trim(),
+      });
+      setNotification({
+        title: "CODE SENT",
+        message: response?.message || "A new verification code has been issued.",
+      });
+    } catch (error) {
+      setNotification({
+        title: "REQUEST FAILED",
+        message: error.message || "Unable to resend verification code.",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const inputBaseClass =
@@ -244,15 +347,30 @@ export default function AuthLogin({ onAuthSuccess }) {
 
             {/* Bento-style Social Grid */}
             <div className="w-full relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in-up delay-100">
-              <button className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-[2rem] font-bold text-xs transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--card-solid)] hover:-translate-y-1 shadow-sm relative z-10">
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-[2rem] font-bold text-xs transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] shadow-sm relative z-10 opacity-60 cursor-not-allowed"
+                disabled
+                title="Google auth not enabled in this demo"
+              >
                 <Chrome size={20} className="text-[var(--primary)]" />
                 Google
               </button>
-              <button className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-[2rem] font-bold text-xs transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--card-solid)] hover:-translate-y-1 shadow-sm relative z-10">
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-[2rem] font-bold text-xs transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] shadow-sm relative z-10 opacity-60 cursor-not-allowed"
+                disabled
+                title="GitHub auth not enabled in this demo"
+              >
                 <Github size={20} className="text-[var(--tertiary)]" />
                 GitHub
               </button>
-              <button className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-[2rem] font-bold text-xs transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--card-solid)] hover:-translate-y-1 shadow-sm relative z-10">
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center gap-3 w-full py-6 rounded-[2rem] font-bold text-xs transition-all duration-300 bg-[var(--input-glass)] text-[var(--foreground)] border border-[var(--border)] shadow-sm relative z-10 opacity-60 cursor-not-allowed"
+                disabled
+                title="Apple auth not enabled in this demo"
+              >
                 <Apple size={20} className="text-[var(--secondary)]" />
                 Apple
               </button>
@@ -280,6 +398,8 @@ export default function AuthLogin({ onAuthSuccess }) {
                   <input
                     type="text"
                     required
+                    value={formValues.username}
+                    onChange={handleChange("username")}
                     placeholder="Display Name"
                     className={`${inputBaseClass} pl-16`}
                   />
@@ -293,6 +413,8 @@ export default function AuthLogin({ onAuthSuccess }) {
                 <input
                   type="email"
                   required
+                  value={formValues.email}
+                  onChange={handleChange("email")}
                   placeholder="Work Email"
                   className={`${inputBaseClass} pl-16`}
                 />
@@ -305,6 +427,8 @@ export default function AuthLogin({ onAuthSuccess }) {
                 <input
                   type="password"
                   required
+                  value={formValues.password}
+                  onChange={handleChange("password")}
                   placeholder="Access Key"
                   className={`${inputBaseClass} pl-16`}
                 />
@@ -312,12 +436,46 @@ export default function AuthLogin({ onAuthSuccess }) {
 
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className={`mt-3 flex items-center justify-center gap-3 w-full py-5 rounded-full font-black text-base tracking-widest uppercase transition-all duration-500 shadow-lg hover:shadow-[var(--primary)]/20 hover:scale-[1.02] active:scale-[0.98] bg-[var(--primary)] text-white relative z-10`}
               >
-                {authMode === "login" ? "Confirm Entry" : "Establish Path"}
+                {isSubmitting ? "Please Wait" : authMode === "login" ? "Confirm Entry" : "Establish Path"}
                 <ArrowRight size={20} strokeWidth={3} />
               </button>
             </form>
+
+            {authMode === "signup" && pendingVerificationEmail && (
+              <div className="w-full mt-6 relative z-10 flex flex-col gap-3 animate-fade-in-up delay-300">
+                <div className="text-[10px] font-black tracking-widest uppercase text-[var(--foreground)]/60">
+                  Verify Email: {pendingVerificationEmail}
+                </div>
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(event) => setVerificationCode(event.target.value)}
+                  placeholder="Enter verification code"
+                  className={inputBaseClass}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleVerifyEmail}
+                    disabled={isVerifying || !verificationCode.trim()}
+                    className="py-3 rounded-full font-black text-xs tracking-widest uppercase bg-[var(--tertiary)] text-white disabled:opacity-50"
+                  >
+                    {isVerifying ? "Please Wait" : "Verify Email"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={isVerifying}
+                    className="py-3 rounded-full font-black text-xs tracking-widest uppercase border border-[var(--border)] text-[var(--foreground)] bg-[var(--input-glass)] disabled:opacity-50"
+                  >
+                    Resend Code
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Footer Elements */}
             <div className="mt-12 relative z-10 flex flex-col items-center gap-5">
